@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Good Morning Pookie ❤️</title>
+    <meta name="description" content="A cute pixel art love story for Ammu">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Audio -->
+        <audio id="bg-music" src="ytmp3free.cc_cant-take-my-eyes-off-you-youtubemp3free.org.mp3" preload="auto"></audio>
+
+        <!-- UI Overlay (on top of canvas) -->
+        <div id="ui-overlay">
+            <button id="music-btn" class="music-toggle-btn" onclick="game.toggleMusic()" title="Toggle Music">🎵</button>
+            <div id="dialogue-box" class="hidden">
+                <div class="dialogue-border">
+                    <div id="dialogue-speaker"></div>
+                    <div id="dialogue-text"></div>
+                    <div id="dialogue-choices"></div>
+                    <div id="dialogue-continue" class="hidden">▶ CONTINUE</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intro Screen -->
+        <div id="intro-overlay" class="overlay active">
+            <div class="scanlines"></div>
+            <div class="intro-content">
+                <div class="intro-stars" id="intro-stars"></div>
+                <div class="pixel-sun-icon">☀️</div>
+                <h1 class="intro-title">Good Morning<br><span class="pink">Pookie</span></h1>
+                <p class="intro-sub">~ a little story, just for you ~</p>
+                <button class="pixel-btn pulse" onclick="game.startGame()">▶ CONTINUE</button>
+            </div>
+        </div>
+
+        <!-- Fade overlay -->
+        <div id="fade-overlay" class="overlay" style="opacity:0;pointer-events:none;background:#0a0a1a"></div>
+
+        <!-- Finale overlay -->
+        <div id="finale-overlay" class="overlay hidden">
+            <div class="scanlines"></div>
+            <div class="finale-flowers-layer" id="finale-flowers"></div>
+            <div class="finale-letter-wrap">
+                <div class="finale-letter">
+                    <h2 class="letter-title">💌 Dear Ammu 💌</h2>
+                    <div class="letter-body">
+                        Hi Ammu, <span class="hl">I love you a lot</span> and will love you forever — till the sun explodes and takes over the world, hehe. ☀️
+                        <br><br>
+                        You know, talking like this feels like sending you letters via pigeon, hahaha — I love it. 🐦
+                        <br><br>
+                        Every moment, I think of you and want to talk with you. Your smile, your laugh, your voice, your way of thinking, your writing, your stories, your interests, your talks — <span class="hl">I LOVE IT ALL. I LOVE YOU.</span> 💕
+                        <br><br>
+                        I will never make you upset or make you cry. I will always be there, right next to you. You can share anything you want, and <span class="hl">my shoulder and a bigggg hug are always there</span>. 🤗
+                        <br><br>
+                        I want to explore the whole world with you and spend every single moment with you. I want to <span class="hl">open a café in Kerala</span> with you, where books written by you can sit on our shelves and my eyes can treasure every moment of it — a shelf where I can put every memory of ours. ☕📚
+                        <br><br>
+                        <span class="hl big">I love you, Ammu. Forever and always. 💕</span>
+                    </div>
+                    <div class="letter-sig">— Your Eugene 🌹</div>
+                    <div class="letter-hearts">❤️ 💕 💖 💗 💝 ❤️</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
