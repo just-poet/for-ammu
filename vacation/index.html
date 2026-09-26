@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finally Vacation Time? ☀️🌴</title>
+    <meta name="description" content="A romantic pixel art vacation story for Ammu">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-overlay">
+            <audio id="bg-music-1" src="../ytmp3free.cc_premam-malare-video-song-rajesh-murugesan-vijay-yesudas-nivin-pauly-sai-pallavi-youtubemp3free.org.mp3" preload="auto"></audio>
+            <audio id="bg-music-2" src="../youtube-audio.mp3" preload="auto"></audio>
+            <button id="music-btn" class="music-toggle-btn" onclick="game.toggleMusic()" title="Toggle Music">🎵</button>
+            <div id="dialogue-box" class="hidden">
+                <div class="dialogue-border">
+                    <div id="dialogue-speaker"></div>
+                    <div id="dialogue-text"></div>
+                    <div id="dialogue-choices"></div>
+                    <div id="dialogue-continue" class="hidden">▶ CONTINUE</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intro Screen -->
+        <div id="intro-overlay" class="overlay active">
+            <div class="scanlines"></div>
+            <div class="intro-content">
+                <div class="intro-stars" id="intro-stars"></div>
+                <div class="pixel-sun-icon">🌴</div>
+                <h1 class="intro-title">FINALLY<br><span class="pink">VACATION TIME ?</span></h1>
+                <p class="intro-sub">~ a little adventure, just for us ~</p>
+                <button class="pixel-btn pulse" onclick="game.startGame()">▶ LET'S GO!</button>
+            </div>
+        </div>
+
+        <!-- Fade overlay -->
+        <div id="fade-overlay" class="overlay" style="opacity:0;pointer-events:none;background:#0a0a1a"></div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
