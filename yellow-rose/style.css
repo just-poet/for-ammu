@@ -1,0 +1,221 @@
+/* ==========================================================================
+   2D PIXEL ART STYLING: TANGLED LAKE & RISING YELLOW ROSE
+   ========================================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #06020e;
+    font-family: 'Press Start 2P', monospace, sans-serif;
+    color: #fff;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #06020e;
+}
+
+/* Fullscreen Pixel Canvas */
+#pixel-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    cursor: pointer;
+}
+
+/* Retro Top UI Bar */
+.pixel-top-ui {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.pixel-btn {
+    pointer-events: auto;
+    background: #1a0a2a;
+    border: 3px solid #ffcc00;
+    color: #ffea79;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #8c5a00, 0 6px 12px rgba(0, 0, 0, 0.6);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.1s ease;
+    text-transform: uppercase;
+}
+
+.pixel-btn:hover {
+    background: #2d1445;
+    color: #ffffff;
+    border-color: #ffe066;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #8c5a00, 0 8px 16px rgba(255, 204, 0, 0.4);
+}
+
+.pixel-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #8c5a00;
+}
+
+/* Message Box (Corrected Grammar, Nothing More) */
+.message-wrapper {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 680px;
+    z-index: 40;
+    pointer-events: none;
+    animation: fadeInMessage 1.2s ease-out;
+}
+
+@keyframes fadeInMessage {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 25px);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.pixel-box {
+    pointer-events: auto;
+    background: rgba(14, 5, 26, 0.92);
+    border: 4px solid #ffcc00;
+    border-radius: 0;
+    padding: 18px 22px;
+    box-shadow: 
+        inset 0 0 0 2px #502800,
+        0 8px 0 rgba(0, 0, 0, 0.7),
+        0 0 25px rgba(255, 204, 0, 0.35);
+    text-align: center;
+    backdrop-filter: blur(8px);
+}
+
+.pixel-box-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    border-bottom: 2px dashed rgba(255, 204, 0, 0.4);
+    padding-bottom: 8px;
+}
+
+.header-title {
+    font-size: 11px;
+    color: #ff99bb;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px #000;
+}
+
+.header-star {
+    font-size: 12px;
+    animation: twinkleStar 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes twinkleStar {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    100% { transform: scale(1.2); opacity: 1; }
+}
+
+.pixel-box-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message-line {
+    font-size: 11px;
+    line-height: 1.8;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+}
+
+.line-1 {
+    color: #ffe57f;
+}
+
+.line-2 {
+    color: #ffffff;
+    font-size: 13px;
+    color: #ffd54f;
+    letter-spacing: 1px;
+}
+
+.pixel-box-hint {
+    margin-top: 14px;
+    font-size: 8px;
+    color: #aa94c4;
+    letter-spacing: 1px;
+}
+
+/* Scanlines Effect for Authentic CRT / Retro Screen Feel */
+#game-container::after {
+    content: " ";
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background-size: 100% 4px;
+    z-index: 30;
+    pointer-events: none;
+    opacity: 0.45;
+}
+
+/* Responsive Scaling for Small Screens */
+@media (max-width: 600px) {
+    .pixel-btn {
+        font-size: 8px;
+        padding: 8px 10px;
+    }
+    .message-wrapper {
+        bottom: 16px;
+        width: 95%;
+    }
+    .pixel-box {
+        padding: 14px 14px;
+    }
+    .line-1 {
+        font-size: 9px;
+    }
+    .line-2 {
+        font-size: 10px;
+    }
+    .pixel-box-hint {
+        font-size: 7px;
+    }
+}

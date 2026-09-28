@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Golden Flower For You 💛</title>
+    <meta name="description" content="A 2D pixel art animation of Rapunzel and Eugene at night with floating lanterns and a rising yellow rose.">
+    
+    <!-- Google Fonts for Retro Pixel Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="yellow-rose/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 2D Pixel Canvas for Full Scene & Animations -->
+        <canvas id="pixel-canvas"></canvas>
+
+        <!-- Audio Element for Tangled Song (Autoplay default on) -->
+        <audio id="bg-music" src="youtube-audio.mp3" preload="auto" autoplay loop></audio>
+
+        <!-- Top Pixel UI Bar -->
+        <div class="pixel-top-ui">
+            <button id="music-btn" class="pixel-btn" title="Toggle Tangled Music">
+                <span class="btn-icon">☀️</span>
+                <span id="music-btn-text">MUSIC: PLAY ▶</span>
+            </button>
+            <button id="replay-btn" class="pixel-btn" title="Replay the Golden Flower Rise Animation">
+                <span class="btn-icon">☀️</span>
+                <span>RISE AGAIN ⬆</span>
+            </button>
+        </div>
+
+        <!-- The Exact Heartfelt Message Box (Grammar Corrected, Nothing More) -->
+        <div class="message-wrapper" id="message-box">
+            <div class="pixel-box">
+                <div class="pixel-box-header">
+                    <span class="header-star">✨</span>
+                    <span class="header-title">FOR AMMU</span>
+                    <span class="header-star">✨</span>
+                </div>
+                <div class="pixel-box-content">
+                    <p class="message-line line-1">I haven't given you a flower for 2 days, so here it is...</p>
+                    <p class="message-line line-2">I love you so much! 💛</p>
+                </div>
+                <div class="pixel-box-hint">
+                    <span>[ Click screen to release floating lanterns ]</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2D Pixel Art Animation Engine -->
+    <script src="yellow-rose/script.js?v=4"></script>
+</body>
+</html>
