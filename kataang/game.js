@@ -227,7 +227,7 @@
 
             this.state = 'INTRO';
             this.battlePhase = 1;
-            this.maxPhases = 5;
+            this.maxPhases = 3;
 
             this.nightProgress = 0; 
             this.time = 0;
@@ -309,6 +309,7 @@
             this.isTyping = false;
             this.currentTextFull = '';
 
+            // EXACTLY 3 EPIC FIGHT SCENES
             this.battleScenes = [
                 {
                     phase: 1,
@@ -358,52 +359,6 @@
                 },
                 {
                     phase: 3,
-                    enemyName: 'FIRE NATION FLAME DUO',
-                    enemyType: 'Duo',
-                    moves: [
-                        {
-                            id: 'octopus_form',
-                            name: 'OCTOPUS WATER FORM',
-                            icon: '🐙',
-                            desc: 'Katara manifests eight swirling water tentacles encircling her!',
-                            synergy: 'AANG: Air Twister Cyclone lifts the tentacles into a maelstrom!',
-                            damage: 100
-                        },
-                        {
-                            id: 'water_dome',
-                            name: 'TIDAL RING DEFENSE',
-                            icon: '🛡️',
-                            desc: 'A rushing torrent ring extinguishing incoming fire!',
-                            synergy: 'AANG: Aerial blast converts ring into an outward concussive shockwave!',
-                            damage: 100
-                        }
-                    ]
-                },
-                {
-                    phase: 4,
-                    enemyName: 'IMPERIAL FIREBENDER CAPTAIN',
-                    enemyType: 'Captain',
-                    moves: [
-                        {
-                            id: 'lake_tidal_wave',
-                            name: 'LAKE TIDAL WAVE',
-                            icon: '🌊',
-                            desc: 'Katara draws a colossal cresting surge from the lake!',
-                            synergy: 'AANG: Glider Gale Hurricane drives the wave over the entire squad!',
-                            damage: 100
-                        },
-                        {
-                            id: 'torrent_geyser',
-                            name: 'TORRENTIAL GEYSER',
-                            icon: '💦',
-                            desc: 'Erupts an enormous geyser directly beneath the enemies!',
-                            synergy: 'AANG: High-altitude air compression slams them into the water!',
-                            damage: 100
-                        }
-                    ]
-                },
-                {
-                    phase: 5,
                     enemyName: 'FIRE SUPREME COMMANDER',
                     enemyType: 'Commander',
                     moves: [
@@ -611,8 +566,8 @@
             this.battlePhase = phaseNum;
             const sceneData = this.battleScenes[phaseNum - 1];
 
-            this.sceneIndicator.textContent = `BATTLE: SCENE ${phaseNum} OF 5`;
-            this.phaseCounter.textContent = `${phaseNum} / 5`;
+            this.sceneIndicator.textContent = `BATTLE: SCENE ${phaseNum} OF 3`;
+            this.phaseCounter.textContent = `${phaseNum} / 3`;
             this.enemyNameEl.textContent = sceneData.enemyName;
             this.enemy.name = sceneData.enemyName;
             this.enemy.type = sceneData.enemyType;
@@ -660,8 +615,8 @@
             this.triggerWaterAttack(move.id);
 
             setTimeout(() => {
-                this.aang.state = (this.battlePhase === 5) ? 'avatar_state' : 'airblast';
-                if (this.battlePhase === 5) {
+                this.aang.state = (this.battlePhase === 3) ? 'avatar_state' : 'airblast';
+                if (this.battlePhase === 3) {
                     this.aang.avatarGlow = 1;
                 }
                 this.sound.sfxAirWhoosh();
@@ -789,7 +744,7 @@
                 });
             }
 
-            if (this.battlePhase === 5) {
+            if (this.battlePhase === 3) {
                 for (let i = 0; i < 45; i++) {
                     const ang = Math.random() * Math.PI * 2;
                     const spd = 2 + Math.random() * 5;
@@ -1081,6 +1036,14 @@
             // 6. Dynamic Water/Air/Fire FX
             this.drawVisualEffects(ctx);
 
+            // 7. Cinematic Vignette (Subtle edge darkening for movie quality)
+            const vig = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.45, VW / 2, VH / 2, VW * 0.74);
+            vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            vig.addColorStop(0.65, 'rgba(0, 0, 0, 0.12)');
+            vig.addColorStop(1, 'rgba(0, 0, 0, 0.58)');
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, VW, VH);
+
             // Scale to screen
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.drawImage(
@@ -1090,7 +1053,7 @@
             );
         }
 
-        // SKY, MOUNTAINS & SPIRIT MOON
+        // SKY, MOUNTAINS, CASCADING WATERFALL & SPIRIT MOON
         drawSkyAndMountains(ctx) {
             const t = this.nightProgress;
 
@@ -1107,12 +1070,41 @@
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, VW, VH * 0.72);
 
+            // Cinematic Volumetric Sunbeams / God-Rays (Day Mode)
+            if (t < 0.75) {
+                ctx.save();
+                const rayAlpha = (1 - t) * 0.11;
+                ctx.fillStyle = `rgba(254, 240, 138, ${rayAlpha})`;
+                // Beam 1
+                ctx.beginPath();
+                ctx.moveTo(70, 42);
+                ctx.lineTo(-20, 250);
+                ctx.lineTo(60, 270);
+                ctx.closePath();
+                ctx.fill();
+                // Beam 2
+                ctx.beginPath();
+                ctx.moveTo(70, 42);
+                ctx.lineTo(130, 270);
+                ctx.lineTo(230, 270);
+                ctx.closePath();
+                ctx.fill();
+                // Beam 3
+                ctx.beginPath();
+                ctx.moveTo(70, 42);
+                ctx.lineTo(280, 270);
+                ctx.lineTo(390, 270);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
             // Night Stars & Nebula Dust
             if (t > 0.2) {
                 // Nebula cloud wash
-                ctx.fillStyle = `rgba(168, 85, 247, ${0.12 * t})`;
+                ctx.fillStyle = `rgba(168, 85, 247, ${0.14 * t})`;
                 ctx.beginPath();
-                ctx.arc(200, 50, 90, 0, Math.PI * 2);
+                ctx.arc(200, 50, 95, 0, Math.PI * 2);
                 ctx.fill();
 
                 this.stars.forEach(st => {
@@ -1121,7 +1113,6 @@
                         ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, Math.max(0, alpha))})`;
                         ctx.fillRect(Math.floor(st.x), Math.floor(st.y), st.size, st.size);
                         if (st.size === 2) {
-                            // Subtle cross gleam for bright stars
                             ctx.fillStyle = `rgba(199, 210, 254, ${alpha * 0.6})`;
                             ctx.fillRect(Math.floor(st.x - 1), Math.floor(st.y), 4, 1);
                             ctx.fillRect(Math.floor(st.x), Math.floor(st.y - 1), 1, 4);
@@ -1135,13 +1126,13 @@
                 const moonAlpha = t;
 
                 // Moon outer celestial aura
-                const moonGlow = ctx.createRadialGradient(moonX, moonY, 12, moonX, moonY, 40);
-                moonGlow.addColorStop(0, `rgba(254, 240, 138, ${0.35 * moonAlpha})`);
-                moonGlow.addColorStop(0.5, `rgba(224, 242, 254, ${0.15 * moonAlpha})`);
+                const moonGlow = ctx.createRadialGradient(moonX, moonY, 12, moonX, moonY, 44);
+                moonGlow.addColorStop(0, `rgba(254, 240, 138, ${0.38 * moonAlpha})`);
+                moonGlow.addColorStop(0.5, `rgba(224, 242, 254, ${0.16 * moonAlpha})`);
                 moonGlow.addColorStop(1, 'rgba(0,0,0,0)');
                 ctx.fillStyle = moonGlow;
                 ctx.beginPath();
-                ctx.arc(moonX, moonY, 40, 0, Math.PI * 2);
+                ctx.arc(moonX, moonY, 44, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Moon Body
@@ -1160,14 +1151,13 @@
             // Day Sun & Fluffy Painterly Clouds
             if (t < 0.8) {
                 const sunA = 1 - t;
-                // Golden sun
-                const sunGlow = ctx.createRadialGradient(70, 42, 10, 70, 42, 50);
-                sunGlow.addColorStop(0, `rgba(253, 224, 71, ${0.8 * sunA})`);
-                sunGlow.addColorStop(0.5, `rgba(254, 240, 138, ${0.3 * sunA})`);
+                const sunGlow = ctx.createRadialGradient(70, 42, 10, 70, 42, 55);
+                sunGlow.addColorStop(0, `rgba(253, 224, 71, ${0.85 * sunA})`);
+                sunGlow.addColorStop(0.5, `rgba(254, 240, 138, ${0.35 * sunA})`);
                 sunGlow.addColorStop(1, 'rgba(0,0,0,0)');
                 ctx.fillStyle = sunGlow;
                 ctx.beginPath();
-                ctx.arc(70, 42, 50, 0, Math.PI * 2);
+                ctx.arc(70, 42, 55, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.fillStyle = `rgba(254, 240, 138, ${sunA})`;
@@ -1175,7 +1165,6 @@
                 ctx.arc(70, 42, 15, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Animated Cel-Shaded Clouds
                 this.clouds.forEach(cl => {
                     cl.x += cl.speed;
                     if (cl.x > VW + 50) cl.x = -110;
@@ -1218,6 +1207,23 @@
             ctx.closePath();
             ctx.fill();
 
+            // Cascading Cliff Waterfall into Lake
+            const wfX = 395;
+            const wfY1 = 105;
+            const wfY2 = 162;
+            ctx.fillStyle = this.lerpColor('#38bdf8', '#1e3a8a', t);
+            ctx.fillRect(wfX - 1, wfY1, 6, wfY2 - wfY1);
+            // Foaming water ribbons
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            for (let y = wfY1; y < wfY2; y += 4) {
+                const wave = Math.sin(this.time * 18 + y) * 1.5;
+                ctx.fillRect(wfX + wave, y, 4, 3);
+            }
+            // Rising spray mist at lake base
+            ctx.fillStyle = t > 0.5 ? 'rgba(56, 189, 248, 0.28)' : 'rgba(255, 255, 255, 0.55)';
+            const sprayW = 18 + Math.sin(this.time * 8) * 4;
+            ctx.fillRect(wfX - sprayW / 2 + 2, wfY2 - 3, sprayW, 5);
+
             // Mountain Mist Band
             const mistGrad = ctx.createLinearGradient(0, 135, 0, 155);
             mistGrad.addColorStop(0, 'rgba(255,255,255,0)');
@@ -1246,11 +1252,9 @@
             const bx = Math.floor(x);
             const by = Math.floor(y);
 
-            // Cloud Under-shadow
             ctx.fillStyle = `rgba(203, 213, 225, ${alpha * 0.8})`;
             ctx.fillRect(bx + 6, by + h - 8, w - 12, 8);
 
-            // Cloud Main White Puff
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.95})`;
             ctx.beginPath();
             ctx.arc(bx + 18, by + h / 2, 12, 0, Math.PI * 2);
@@ -1310,6 +1314,15 @@
                 const ry = lakeY + 12 + r * 8;
                 const rw = 16 + (r % 3) * 8;
                 ctx.fillRect(Math.floor(rx), Math.floor(ry), rw, 2);
+            }
+
+            // Cinematic Drifting Lake Fog / Mist Layer
+            ctx.fillStyle = t > 0.5 ? 'rgba(168, 85, 247, 0.12)' : 'rgba(224, 242, 254, 0.22)';
+            for (let m = 0; m < 3; m++) {
+                const mx = ((this.time * 14 + m * 85) % (lakeW + 70)) + lakeX - 35;
+                const my = lakeY + 20 + m * 22;
+                ctx.fillRect(Math.floor(mx), Math.floor(my), 60, 4);
+                ctx.fillRect(Math.floor(mx + 8), Math.floor(my - 2), 44, 2);
             }
 
             // Water Reeds & Cattails on Shore
