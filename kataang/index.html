@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Katara & Aang 🌊💨 | Battle & Bonfire</title>
+    <meta name="description" content="A handcrafted 2D pixel art Avatar adventure featuring Katara and Aang defending the forest from the Fire Nation and sharing a romantic bonfire night.">
+    
+    <!-- Google Fonts for Retro Pixel Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 2D Pixel Art Canvas -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Top Status Bar -->
+        <header id="top-bar">
+            <div class="header-left">
+                <span class="badge water-badge">🌊 KATARA</span>
+                <span class="badge air-badge">💨 AANG</span>
+                <span id="scene-indicator" class="badge scene-badge">FOREST CLEARING</span>
+            </div>
+            <div class="header-right">
+                <button id="sound-btn" class="pixel-btn sm" title="Toggle Sound / Music">
+                    <span id="sound-icon">🔊</span> <span id="sound-text">SOUND: ON</span>
+                </button>
+                <button id="restart-btn" class="pixel-btn sm" title="Restart Story">
+                    <span>🔄 RESTART</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Battle HUD Overlay -->
+        <div id="battle-hud" class="hud-layer hidden">
+            <!-- Phase & Enemy HP Bar -->
+            <div class="battle-top-info">
+                <div class="phase-box">
+                    <span class="phase-title">BATTLE PHASE</span>
+                    <span id="phase-counter" class="phase-number">1 / 5</span>
+                </div>
+                <div class="enemy-status-card">
+                    <div class="enemy-header">
+                        <span id="enemy-name" class="enemy-name">FIRE NATION SCOUT</span>
+                        <span id="enemy-hp-text" class="enemy-hp-num">100%</span>
+                    </div>
+                    <div class="hp-bar-bg">
+                        <div id="enemy-hp-fill" class="hp-bar-fill fire-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combo Announcement Banner -->
+            <div id="combo-banner" class="combo-banner hidden">
+                <div class="combo-text" id="combo-text">DUAL BENDING COMBO!</div>
+            </div>
+
+            <!-- Attack Selection Menu for Katara -->
+            <div id="attack-menu" class="attack-menu">
+                <div class="menu-title-bar">
+                    <span class="element-icon">🌊</span>
+                    <span class="menu-heading">SELECT KATARA'S WATERBENDING ATTACK:</span>
+                    <span class="menu-sub">[Aang will synergize with Airbending!]</span>
+                </div>
+                <div id="attack-buttons" class="attack-buttons-grid">
+                    <!-- Injected dynamically by game.js -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialogue Box -->
+        <div id="dialogue-box" class="dialogue-container hidden">
+            <div class="dialogue-window">
+                <div class="speaker-tag" id="speaker-tag">AANG</div>
+                <div class="dialogue-content">
+                    <div class="portrait-box" id="portrait-box">
+                        <div class="pixel-portrait" id="portrait-avatar"></div>
+                    </div>
+                    <div class="dialogue-text-area">
+                        <p id="dialogue-text" class="dialogue-p"></p>
+                        <div id="dialogue-choices" class="dialogue-choices-row hidden"></div>
+                    </div>
+                </div>
+                <div id="dialogue-prompt" class="dialogue-prompt">PRESS [SPACE] OR CLICK TO CONTINUE ▶</div>
+            </div>
+        </div>
+
+        <!-- Night Romantic Controls Panel -->
+        <div id="night-actions" class="night-actions-panel hidden">
+            <div class="night-panel-header">
+                <span class="heart-pulse">💖</span>
+                <span>SPEND TIME WITH AANG BY THE BONFIRE:</span>
+                <span class="heart-pulse">💖</span>
+            </div>
+            <div class="night-buttons-row">
+                <button class="night-btn" onclick="game.triggerRomanticAction('love')">
+                    💕 Say "I Love You Too!"
+                </button>
+                <button class="night-btn" onclick="game.triggerRomanticAction('shoulder')">
+                    🤗 Lean on Aang's Shoulder
+                </button>
+                <button class="night-btn" onclick="game.triggerRomanticAction('waterheart')">
+                    🌊 Waterbend Glowing Heart
+                </button>
+                <button class="night-btn" onclick="game.triggerRomanticAction('hands')">
+                    🤝 Hold Hands by Fire
+                </button>
+                <button class="night-btn" onclick="game.triggerRomanticAction('star')">
+                    🌠 Make a Wish on Shooting Star
+                </button>
+            </div>
+        </div>
+
+        <!-- Intro Start Screen Overlay -->
+        <div id="intro-screen" class="screen-overlay active">
+            <div class="intro-card">
+                <div class="intro-elements">
+                    <span class="water-symbol">🌊</span>
+                    <span class="heart-symbol">❤️</span>
+                    <span class="air-symbol">💨</span>
+                </div>
+                <h1 class="main-title">KATARA & AANG</h1>
+                <p class="subtitle">~ The Forest Ambush & The Lakeside Bonfire ~</p>
+                
+                <div class="story-preview-box">
+                    <p class="preview-line">Katara and Aang are exploring the lush forest near the tranquil hill and lake.</p>
+                    <p class="preview-line alert-fire">Suddenly... the Fire Nation ambushes them!</p>
+                    <p class="preview-line">Join forces, unleash 5 epic dual-bending combos, and share an unforgettable night under the stars.</p>
+                </div>
+
+                <button id="start-btn" class="pixel-btn primary pulse-btn">
+                    <span>⚔️ START ADVENTURE</span>
+                </button>
+                <div class="intro-controls-hint">[ Click anywhere or press SPACE to interact ]</div>
+            </div>
+        </div>
+
+        <!-- Fade Transition Curtain -->
+        <div id="fade-curtain" class="fade-curtain"></div>
+    </div>
+
+    <!-- Handcrafted 2D Pixel Art Engine & Game Logic -->
+    <script src="game.js"></script>
+</body>
+</html>
