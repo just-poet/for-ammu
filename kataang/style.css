@@ -448,26 +448,32 @@ html, body {
 }
 
 .portrait-box {
-    width: 64px;
-    height: 64px;
-    background: #1e293b;
-    border: 3px solid #475569;
+    width: 72px;
+    height: 72px;
+    background: #0f172a;
+    border: 3px solid #38bdf8;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 2px 2px 0 #000;
+    box-shadow: 3px 3px 0 #000;
     position: relative;
     overflow: hidden;
 }
 
 .pixel-portrait {
-    width: 48px;
-    height: 48px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pixel-portrait canvas {
+    width: 64px;
+    height: 64px;
     image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 .dialogue-text-area {
