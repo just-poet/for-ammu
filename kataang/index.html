@@ -18,6 +18,10 @@
         <!-- 2D Pixel Art Canvas -->
         <canvas id="game-canvas"></canvas>
 
+        <!-- Audio Elements for Battle and Bonfire -->
+        <audio id="fight-music" src="fight%20scene%20song.mp3" preload="auto"></audio>
+        <audio id="tavern-music" src="tavernsong.mp3" preload="auto"></audio>
+
         <!-- Top Status Bar -->
         <header id="top-bar">
             <div class="header-left">
@@ -89,24 +93,10 @@
             </div>
         </div>
 
-        <!-- Night Romantic Controls Panel -->
-        <div id="night-actions" class="night-actions-panel hidden">
-            <div class="night-panel-header">
-                <span class="heart-pulse">💖</span>
-                <span>SPEND TIME WITH AANG BY THE BONFIRE:</span>
-                <span class="heart-pulse">💖</span>
-            </div>
-            <div class="night-buttons-row">
-                <button class="night-btn" onclick="game.triggerRomanticAction('love')">
-                    💕 Say "I Love You Too!"
-                </button>
-                <button class="night-btn" onclick="game.triggerRomanticAction('shoulder')">
-                    🤗 Lean on Aang's Shoulder
-                </button>
-                <button class="night-btn" onclick="game.triggerRomanticAction('waterheart')">
-                    🌊 Waterbend Glowing Heart
-                </button>
-            </div>
+        <!-- Aurora North Pole Message -->
+        <div id="aurora-message-container" class="aurora-message-container hidden">
+            <h1 class="aurora-message-title">GET WELL SOON SWEETHEART</h1>
+            <p class="aurora-message-sub">WE HAVE TO EXPLORE WHOLE WORLD</p>
         </div>
 
         <!-- Intro Start Screen Overlay -->

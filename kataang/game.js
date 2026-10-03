@@ -28,6 +28,90 @@
             this.currentTrack = null;
             this.musicTimer = null;
             this.musicStep = 0;
+
+            // Audio tracks
+            this.fightAudio = null;
+            this.tavernAudio = null;
+            this.initAudioElements();
+        }
+
+        initAudioElements() {
+            try {
+                this.fightAudio = document.getElementById('fight-music');
+                if (!this.fightAudio) {
+                    this.fightAudio = new Audio('fight%20scene%20song.mp3');
+                }
+                this.fightAudio.volume = 0.65;
+                this.fightAudio.preload = 'auto';
+
+                this.tavernAudio = document.getElementById('tavern-music');
+                if (!this.tavernAudio) {
+                    this.tavernAudio = new Audio('tavernsong.mp3');
+                }
+                this.tavernAudio.volume = 0.65;
+                this.tavernAudio.preload = 'auto';
+
+                // Seamless looping from designated starting timestamps if scene lingers
+                this.fightAudio.addEventListener('ended', () => {
+                    if (this.currentTrack === 'battle' && this.enabled) {
+                        this.playAudioTrack(this.fightAudio, 115);
+                    }
+                });
+
+                this.tavernAudio.addEventListener('ended', () => {
+                    if ((this.currentTrack === 'night' || this.currentTrack === 'aurora') && this.enabled) {
+                        this.playAudioTrack(this.tavernAudio, 67);
+                    }
+                });
+            } catch (e) {
+                console.warn('Audio element initialization error:', e);
+            }
+        }
+
+        playAudioTrack(audio, startTime = null) {
+            if (!this.enabled || !audio) return;
+
+            const executePlay = () => {
+                if (startTime !== null) {
+                    try {
+                        audio.currentTime = startTime;
+                    } catch (e) {}
+                }
+
+                const playPromise = audio.play();
+                if (playPromise && typeof playPromise.then === 'function') {
+                    playPromise.then(() => {
+                        // Double check currentTime in case browser reset to 0 before stream buffered
+                        if (startTime !== null && Math.abs(audio.currentTime - startTime) > 2) {
+                            try { audio.currentTime = startTime; } catch (e) {}
+                        }
+                    }).catch(err => {
+                        console.log('Audio playback waiting for gesture:', err);
+                    });
+                }
+            };
+
+            if (audio.readyState >= 1) { // HAVE_METADATA or higher
+                executePlay();
+            } else {
+                audio.addEventListener('loadedmetadata', () => {
+                    executePlay();
+                }, { once: true });
+                audio.load();
+            }
+        }
+
+        pauseAllMusic() {
+            if (this.musicTimer) {
+                clearInterval(this.musicTimer);
+                this.musicTimer = null;
+            }
+            if (this.fightAudio) {
+                try { this.fightAudio.pause(); } catch (e) {}
+            }
+            if (this.tavernAudio) {
+                try { this.tavernAudio.pause(); } catch (e) {}
+            }
         }
 
         init() {
@@ -39,6 +123,9 @@
             }
             if (this.ctx && this.ctx.state === 'suspended') {
                 this.ctx.resume();
+            }
+            if (!this.fightAudio || !this.tavernAudio) {
+                this.initAudioElements();
             }
         }
 
@@ -132,65 +219,92 @@
 
         playTrack(trackName) {
             this.init();
-            if (this.currentTrack === trackName) return;
+            if (this.currentTrack === trackName) {
+                // If already on this track but paused, unpause without seeking
+                if (trackName === 'battle' && this.fightAudio && this.fightAudio.paused && this.enabled) {
+                    this.playAudioTrack(this.fightAudio, null);
+                } else if ((trackName === 'night' || trackName === 'aurora') && this.tavernAudio && this.tavernAudio.paused && this.enabled) {
+                    this.playAudioTrack(this.tavernAudio, null);
+                }
+                return;
+            }
+
+            const prevTrack = this.currentTrack;
             this.currentTrack = trackName;
-            if (this.musicTimer) clearInterval(this.musicTimer);
+
+            if (!this.enabled) {
+                this.pauseAllMusic();
+                return;
+            }
 
             if (trackName === 'battle') {
-                this.startBattleMusic();
+                this.pauseAllMusic();
+                // Fight scene song starting at 1:55 (115 seconds)
+                this.playAudioTrack(this.fightAudio, 115);
             } else if (trackName === 'night') {
-                this.startNightMusic();
+                this.pauseAllMusic();
+                // Tavern song from 1:07 (67 seconds)
+                this.playAudioTrack(this.tavernAudio, 67);
+            } else if (trackName === 'aurora') {
+                // Tavern song continues in aurora page too!
+                if (this.tavernAudio && !this.tavernAudio.paused && prevTrack === 'night') {
+                    // Already playing from bonfire scene: continue seamlessly without interruption!
+                } else if (this.tavernAudio && this.tavernAudio.paused && prevTrack === 'night') {
+                    // Was paused during night: unpause without restarting
+                    this.playAudioTrack(this.tavernAudio, null);
+                } else {
+                    // Direct visit to aurora page or switched from battle: start tavern song from 1:07 (67s)
+                    this.pauseAllMusic();
+                    this.playAudioTrack(this.tavernAudio, 67);
+                }
             }
         }
 
-        startBattleMusic() {
+        startAuroraMusic() {
             this.musicStep = 0;
-            const bass = [110, 110, 130, 110, 146, 130, 110, 164];
-            const lead = [220, 0, 261, 293, 329, 293, 261, 329, 392, 329, 293, 261, 220, 261, 293, 0];
-
-            this.musicTimer = setInterval(() => {
-                if (!this.enabled || !this.ctx) return;
-                const b = bass[this.musicStep % bass.length];
-                const l = lead[this.musicStep % lead.length];
-                if (b > 0) this.playTone(b, 'sawtooth', 0.12, 0.08);
-                if (l > 0 && Math.random() > 0.1) this.playTone(l, 'square', 0.18, 0.07);
-                this.musicStep++;
-            }, 180);
-        }
-
-        startNightMusic() {
-            this.musicStep = 0;
-            // Peaceful Avatar "The Avatar's Love" Kalimba & Flute Pentatonic Chimes
-            const kalimbaNotes = [
+            // Ethereal Polar Celesta & Kalimba Pentatonic Chimes
+            const auroraNotes = [
                 523.25, 659.25, 783.99, 1046.50,
-                587.33, 659.25, 880.00, 783.99,
-                523.25, 783.99, 659.25, 587.33,
-                440.00, 523.25, 659.25, 523.25
+                880.00, 1046.50, 1318.51, 1174.66,
+                783.99, 659.25, 880.00, 1046.50,
+                587.33, 783.99, 659.25, 523.25
             ];
 
-            const flutePad = [
-                261.63, 0, 329.63, 0, 392.00, 0, 440.00, 0,
-                329.63, 0, 261.63, 0, 220.00, 0, 261.63, 0
+            const lowPad = [
+                130.81, 0, 164.81, 0, 196.00, 0, 220.00, 0,
+                164.81, 0, 130.81, 0, 146.83, 0, 130.81, 0
             ];
 
             this.musicTimer = setInterval(() => {
                 if (!this.enabled || !this.ctx) return;
-                const k = kalimbaNotes[this.musicStep % kalimbaNotes.length];
-                const f = flutePad[this.musicStep % flutePad.length];
+                const note = auroraNotes[this.musicStep % auroraNotes.length];
+                const pad = lowPad[this.musicStep % lowPad.length];
 
-                if (k > 0) this.playTone(k, 'sine', 0.45, 0.09);
-                if (f > 0 && this.musicStep % 2 === 0) {
-                    this.playTone(f, 'triangle', 0.7, 0.07);
+                if (note > 0) {
+                    this.playTone(note, 'sine', 0.65, 0.08);
+                    if (this.musicStep % 4 === 0) {
+                        this.playTone(note * 1.5, 'sine', 0.9, 0.04);
+                    }
+                }
+                if (pad > 0 && this.musicStep % 2 === 0) {
+                    this.playTone(pad, 'triangle', 0.9, 0.05);
+                }
+
+                if (this.musicStep % 8 === 0) {
+                    this.createNoise(0.8, 0.03, 400);
                 }
 
                 this.musicStep++;
-            }, 320);
+            }, 360);
         }
 
         stopMusic() {
-            if (this.musicTimer) {
-                clearInterval(this.musicTimer);
-                this.musicTimer = null;
+            this.pauseAllMusic();
+            if (this.fightAudio) {
+                try { this.fightAudio.currentTime = 115; } catch (e) {}
+            }
+            if (this.tavernAudio) {
+                try { this.tavernAudio.currentTime = 67; } catch (e) {}
             }
             this.currentTrack = null;
         }
@@ -198,9 +312,13 @@
         toggle() {
             this.enabled = !this.enabled;
             if (!this.enabled) {
-                this.stopMusic();
+                this.pauseAllMusic();
             } else if (this.currentTrack) {
-                this.playTrack(this.currentTrack);
+                if (this.currentTrack === 'battle') {
+                    this.playAudioTrack(this.fightAudio, null);
+                } else if (this.currentTrack === 'night' || this.currentTrack === 'aurora') {
+                    this.playAudioTrack(this.tavernAudio, null);
+                }
             }
             return this.enabled;
         }
@@ -299,9 +417,16 @@
             this.dialogueTextEl = document.getElementById('dialogue-text');
             this.portraitAvatar = document.getElementById('portrait-avatar');
             this.nightActions = document.getElementById('night-actions');
+            this.auroraMessageContainer = document.getElementById('aurora-message-container');
             this.introScreen = document.getElementById('intro-screen');
             this.fadeCurtain = document.getElementById('fade-curtain');
             this.sceneIndicator = document.getElementById('scene-indicator');
+
+            this.northPoleSnowflakes = [];
+            this.northPoleStars = [];
+            this.northPoleShootingStars = [];
+            this.snowGlints = [];
+            this.northPoleInitialized = false;
 
             this.dialogueQueue = [];
             this.currentDialogue = null;
@@ -382,6 +507,15 @@
                 }
             ];
 
+            const isDirectAurora = window.location.search.includes('aurora') || 
+                                   window.location.hash.includes('aurora') || 
+                                   window.location.hash.includes('northpole') ||
+                                   (document.body && document.body.dataset && document.body.dataset.scene === 'aurora');
+
+            if (isDirectAurora) {
+                this.startNorthPoleAuroraDirectly();
+            }
+
             this.initWorld();
             this.bindEvents();
             this.resize();
@@ -457,12 +591,20 @@
                 if (e.code === 'Space') {
                     if (this.dialogueBox && !this.dialogueBox.classList.contains('hidden')) {
                         this.advanceDialogue();
+                    } else if (this.aang && (this.aang.state === 'hug' || this.katara.state === 'hug')) {
+                        this.transitionToNorthPoleAurora();
                     }
                 }
             });
 
             this.dialogueBox.addEventListener('click', () => {
                 this.advanceDialogue();
+            });
+
+            this.canvas.addEventListener('click', () => {
+                if (this.aang && (this.aang.state === 'hug' || this.katara.state === 'hug')) {
+                    this.transitionToNorthPoleAurora();
+                }
             });
         }
 
@@ -483,7 +625,7 @@
                     speaker: 'FIRE NATION SCOUT',
                     style: 'fire',
                     avatar: 'fire',
-                    text: 'HALT! It’s the Water Tribe peasant and the Avatar! ATTACK THEM!!'
+                    text: 'HALT! It’s the Water Tribe water bender and the Avatar! ATTACK THEM!!'
                 },
                 {
                     speaker: 'KATARA',
@@ -512,6 +654,8 @@
         showNextDialogue() {
             if (this.dialogueQueue.length === 0) {
                 this.dialogueBox.classList.add('hidden');
+                this.dialogueBox.classList.remove('romantic-glow');
+                if (this.dialogueTextEl) this.dialogueTextEl.classList.remove('romantic-text');
                 if (this.onDialogueComplete) {
                     const cb = this.onDialogueComplete;
                     this.onDialogueComplete = null;
@@ -524,6 +668,14 @@
             this.currentDialogue = d;
             this.speakerTag.textContent = d.speaker;
             this.speakerTag.className = `speaker-tag ${d.style || ''}`;
+
+            if (d.isRomantic || (d.style && d.style.includes('romantic'))) {
+                this.dialogueBox.classList.add('romantic-glow');
+                if (this.dialogueTextEl) this.dialogueTextEl.classList.add('romantic-text');
+            } else {
+                this.dialogueBox.classList.remove('romantic-glow');
+                if (this.dialogueTextEl) this.dialogueTextEl.classList.remove('romantic-text');
+            }
 
             this.drawPortrait(d.avatar);
             this.typeText(d.text);
@@ -840,17 +992,140 @@
                 setTimeout(() => {
                     this.queueDialogue([
                         {
-                            speaker: 'AANG',
-                            style: 'aang',
+                            speaker: 'AANG 💕 [2-MONTH CONFESSION]',
+                            style: 'aang romantic',
                             avatar: 'aang_blush',
+                            isRomantic: true,
                             text: 'Hiiii Katara, its 2 month since confession and it was the best decision ever . i love youuuuuuuuuuu and i love every moment we sharee '
                         }
                     ], () => {
-                        this.nightActions.classList.remove('hidden');
+                        this.startAangHugKatara();
                     });
                 }, 800);
 
             }, 900);
+        }
+
+        startAangHugKatara() {
+            // Aang gets up and moves toward Katara to cuddle into a cute, comforting embrace
+            this.aang.state = 'moving_to_hug';
+            this.katara.state = 'night_sit';
+            this.katara.blush = 1;
+            this.aang.blush = 1;
+
+            const startX = this.aang.x; // ~185
+            const targetX = 265;
+            const kataraTargetX = 280;
+            this.katara.x = kataraTargetX;
+
+            const duration = 500; // ms (smooth, snappy approach)
+            const startTime = performance.now();
+
+            const step = (now) => {
+                const elapsed = now - startTime;
+                const progress = Math.min(1, elapsed / duration);
+                const ease = 1 - Math.pow(1 - progress, 3); // smooth easeOutCubic
+                this.aang.x = startX + (targetX - startX) * ease;
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    // REACHED KATARA! THE CUTE COMFORT HUG BEGINS!
+                    this.aang.x = targetX;
+                    this.katara.x = kataraTargetX;
+                    this.aang.state = 'hug';
+                    this.katara.state = 'hug';
+
+                    this.sound.sfxHeartChime();
+                    this.spawnFloatingHearts(274, 180, 26);
+                    this.spawnWaterHeart();
+
+                    // Continuous floating hearts during the cozy hug
+                    const heartInterval = setInterval(() => {
+                        if (this.aang.state === 'hug') {
+                            this.spawnFloatingHearts(274 + (Math.random() - 0.5) * 16, 180, 2);
+                        } else {
+                            clearInterval(heartInterval);
+                        }
+                    }, 300);
+
+                    // Reduced hug scene duration: sweet 1.6s duration before seamless cross-fade to aurora
+                    if (this.hugTimer) clearTimeout(this.hugTimer);
+                    this.hugTimer = setTimeout(() => {
+                        clearInterval(heartInterval);
+                        this.transitionToNorthPoleAurora();
+                    }, 1600);
+                }
+            };
+
+            requestAnimationFrame(step);
+        }
+
+        transitionToNorthPoleAurora() {
+            if (this.state === 'NORTH_POLE_AURORA' || this.state === 'NORTH_POLE_TRANSITION') {
+                return;
+            }
+
+            if (this.hugTimer) {
+                clearTimeout(this.hugTimer);
+                this.hugTimer = null;
+            }
+
+            this.state = 'NORTH_POLE_TRANSITION';
+            this.transitionStart = performance.now();
+            this.transitionDuration = 1000; // ms (smooth and brisk cross-fade)
+            this.sound.playTrack('aurora');
+            this.initNorthPoleWorld();
+
+            // Strictly NO black screen curtain!
+            if (this.fadeCurtain) {
+                this.fadeCurtain.classList.remove('active');
+                this.fadeCurtain.style.display = 'none';
+            }
+
+            if (this.topBar) this.topBar.classList.add('hidden');
+            if (this.battleHud) this.battleHud.classList.add('hidden');
+            if (this.dialogueBox) this.dialogueBox.classList.add('hidden');
+            if (this.nightActions) this.nightActions.classList.add('hidden');
+            if (this.introScreen) {
+                this.introScreen.classList.remove('active');
+                this.introScreen.classList.add('hidden');
+            }
+
+            // After seamless cross-dissolve completes:
+            setTimeout(() => {
+                this.state = 'NORTH_POLE_AURORA';
+                if (this.auroraMessageContainer) {
+                    this.auroraMessageContainer.classList.remove('hidden');
+                }
+                document.title = "Get Well Soon Sweetheart ❤️";
+            }, 1000);
+        }
+
+        startNorthPoleAuroraDirectly() {
+            if (this.state === 'NORTH_POLE_AURORA') return;
+            this.state = 'NORTH_POLE_AURORA';
+            this.sound.init();
+            this.sound.playTrack('aurora');
+            this.initNorthPoleWorld();
+
+            if (this.topBar) this.topBar.classList.add('hidden');
+            if (this.introScreen) {
+                this.introScreen.classList.remove('active');
+                this.introScreen.classList.add('hidden');
+            }
+            if (this.battleHud) this.battleHud.classList.add('hidden');
+            if (this.dialogueBox) this.dialogueBox.classList.add('hidden');
+            if (this.nightActions) this.nightActions.classList.add('hidden');
+            if (this.fadeCurtain) {
+                this.fadeCurtain.classList.remove('active');
+                this.fadeCurtain.style.display = 'none';
+            }
+
+            if (this.auroraMessageContainer) {
+                this.auroraMessageContainer.classList.remove('hidden');
+            }
+            document.title = "Get Well Soon Sweetheart ❤️";
         }
 
         triggerRomanticAction(actionType) {
@@ -997,9 +1272,12 @@
             this.aang.y = 200;
             this.aang.state = 'idle';
             this.aang.blush = 0;
-            this.battleHud.classList.add('hidden');
-            this.dialogueBox.classList.add('hidden');
-            this.nightActions.classList.add('hidden');
+            if (this.battleHud) this.battleHud.classList.add('hidden');
+            if (this.dialogueBox) this.dialogueBox.classList.add('hidden');
+            if (this.nightActions) this.nightActions.classList.add('hidden');
+            if (this.auroraMessageContainer) this.auroraMessageContainer.classList.add('hidden');
+            if (this.topBar) this.topBar.classList.remove('hidden');
+            document.title = "Katara & Aang 🌊💨 | Battle & Bonfire";
             this.introScreen.classList.remove('hidden');
             this.introScreen.classList.add('active');
             this.sceneIndicator.textContent = 'FOREST CLEARING';
@@ -1012,37 +1290,89 @@
         render() {
             const ctx = this.oc;
 
-            // 1. Sky & Mountains
-            this.drawSkyAndMountains(ctx);
+            if (this.state === 'NORTH_POLE_AURORA') {
+                this.renderNorthPoleScene(ctx);
+            } else if (this.state === 'NORTH_POLE_TRANSITION') {
+                // SEAMLESS IN-CANVAS CROSS-FADE (ZERO BLACK SCREEN!)
+                const elapsed = performance.now() - (this.transitionStart || performance.now());
+                const progress = Math.min(1, Math.max(0, elapsed / (this.transitionDuration || 1000)));
 
-            // 2. Lake & Reflections
-            this.drawLake(ctx);
+                // 1. Draw the current bonfire scene (with cute comforting hug)
+                this.drawSkyAndMountains(ctx);
+                this.drawLake(ctx);
+                this.drawForestMeadow(ctx);
+                if (this.bonfire.active || this.nightProgress > 0.5) {
+                    this.drawBonfire(ctx);
+                }
+                this.drawCozyComfortHug(ctx, 274, 205);
+                this.drawVisualEffects(ctx);
 
-            // 3. Forest, Hills, & Foliage
-            this.drawForestMeadow(ctx);
+                // 2. Render North Pole scene on offscreen canvas and blend with alpha = progress
+                if (!this.auroraOffCanvas) {
+                    this.auroraOffCanvas = document.createElement('canvas');
+                    this.auroraOffCanvas.width = VW;
+                    this.auroraOffCanvas.height = VH;
+                    this.aoc = this.auroraOffCanvas.getContext('2d');
+                    this.aoc.imageSmoothingEnabled = false;
+                }
+                this.aoc.clearRect(0, 0, VW, VH);
+                this.renderNorthPoleScene(this.aoc);
 
-            // 4. Bonfire (at Night)
-            if (this.bonfire.active || this.nightProgress > 0.5) {
-                this.drawBonfire(ctx);
+                // Draw aurora scene dissolving in smoothly!
+                ctx.save();
+                ctx.globalAlpha = progress;
+                ctx.drawImage(this.auroraOffCanvas, 0, 0);
+
+                // Soft celestial aurora shimmer veil across the dissolve (dreamy glow, NO black screen!)
+                const shimmerAlpha = Math.sin(progress * Math.PI) * 0.28;
+                if (shimmerAlpha > 0.01) {
+                    const auroraGlow = ctx.createLinearGradient(0, 0, 0, VH);
+                    auroraGlow.addColorStop(0, `rgba(52, 211, 153, ${shimmerAlpha})`);
+                    auroraGlow.addColorStop(0.5, `rgba(56, 189, 248, ${shimmerAlpha * 0.7})`);
+                    auroraGlow.addColorStop(1, `rgba(167, 139, 250, ${shimmerAlpha * 0.5})`);
+                    ctx.fillStyle = auroraGlow;
+                    ctx.fillRect(0, 0, VW, VH);
+                }
+                ctx.restore();
+
+            } else {
+                // 1. Sky & Mountains
+                this.drawSkyAndMountains(ctx);
+
+                // 2. Lake & Reflections
+                this.drawLake(ctx);
+
+                // 3. Forest, Hills, & Foliage
+                this.drawForestMeadow(ctx);
+
+                // 4. Bonfire (at Night)
+                if (this.bonfire.active || this.nightProgress > 0.5) {
+                    this.drawBonfire(ctx);
+                }
+
+                // 5. High-Definition Character Sprites
+                if (this.aang.state === 'hug' || this.katara.state === 'hug') {
+                    this.drawCozyComfortHug(ctx, 274, 205);
+                } else {
+                    this.drawAang(ctx);
+                    this.drawKatara(ctx);
+                }
+
+                if (this.state === 'BATTLE' && this.enemy.visible) {
+                    this.drawEnemy(ctx);
+                }
+
+                // 6. Dynamic Water/Air/Fire FX
+                this.drawVisualEffects(ctx);
+
+                // 7. Cinematic Vignette (Subtle edge darkening for movie quality)
+                const vig = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.45, VW / 2, VH / 2, VW * 0.74);
+                vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                vig.addColorStop(0.65, 'rgba(0, 0, 0, 0.12)');
+                vig.addColorStop(1, 'rgba(0, 0, 0, 0.58)');
+                ctx.fillStyle = vig;
+                ctx.fillRect(0, 0, VW, VH);
             }
-
-            // 5. High-Definition Character Sprites
-            this.drawAang(ctx);
-            this.drawKatara(ctx);
-            if (this.state === 'BATTLE' && this.enemy.visible) {
-                this.drawEnemy(ctx);
-            }
-
-            // 6. Dynamic Water/Air/Fire FX
-            this.drawVisualEffects(ctx);
-
-            // 7. Cinematic Vignette (Subtle edge darkening for movie quality)
-            const vig = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.45, VW / 2, VH / 2, VW * 0.74);
-            vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            vig.addColorStop(0.65, 'rgba(0, 0, 0, 0.12)');
-            vig.addColorStop(1, 'rgba(0, 0, 0, 0.58)');
-            ctx.fillStyle = vig;
-            ctx.fillRect(0, 0, VW, VH);
 
             // Scale to screen
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1545,10 +1875,180 @@
         }
 
         // ====================================================================
+        // CUTE & COMFORTING EMBRACE SPRITE (KATARA & AANG COZY BONFIRE CUDDLE)
+        // ====================================================================
+        drawCozyComfortHug(ctx, x, y) {
+            const breath = Math.sin(this.time * 2.8) * 1.2;
+            const sy = Math.floor(y + 4 + breath);
+            const cx = Math.floor(x);
+
+            // 1. Warm Hearth & Heart Ambient Aura
+            const hugGlow = ctx.createRadialGradient(cx, sy - 8, 4, cx, sy - 8, 42);
+            hugGlow.addColorStop(0, 'rgba(251, 146, 60, 0.35)');
+            hugGlow.addColorStop(0.5, 'rgba(244, 63, 94, 0.20)');
+            hugGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = hugGlow;
+            ctx.beginPath();
+            ctx.arc(cx, sy - 8, 42, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Cozy Water Tribe Fleece Blanket on the Grass
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(cx - 24, sy + 10, 48, 5);
+            ctx.fillStyle = '#f8fafc'; // White fur trim fringe
+            ctx.fillRect(cx - 25, sy + 12, 50, 2);
+
+            // 3. Katara Seated on Right (Holding Aang tenderly)
+            // Katara's folded dark pants & boots
+            ctx.fillStyle = '#0c2b47';
+            ctx.fillRect(cx - 2, sy + 6, 20, 8);
+            ctx.fillStyle = '#4a3020'; // Boots
+            ctx.fillRect(cx + 10, sy + 9, 8, 4);
+
+            // Katara's Southern Coat Torso
+            ctx.fillStyle = '#1d6fa5';
+            ctx.fillRect(cx - 1, sy - 12, 20, 18);
+            ctx.fillStyle = '#114b73';
+            ctx.fillRect(cx + 8, sy - 6, 11, 12);
+            ctx.fillStyle = '#f8fafc'; // Fur coat hem
+            ctx.fillRect(cx - 2, sy + 3, 21, 3);
+            ctx.fillStyle = '#f8fafc'; // Fur collar
+            ctx.fillRect(cx + 1, sy - 15, 17, 4);
+
+            // 4. Aang Nestled Snugly on Left (Resting comfortably against Katara)
+            // Aang's yellow monk trousers
+            ctx.fillStyle = '#d49b13';
+            ctx.fillRect(cx - 18, sy + 6, 18, 8);
+            ctx.fillStyle = '#52361b'; // Boots
+            ctx.fillRect(cx - 19, sy + 9, 6, 4);
+
+            // Aang's Yellow Tunic & Orange Nomad Shawl
+            ctx.fillStyle = '#fad02c';
+            ctx.fillRect(cx - 16, sy - 12, 17, 18);
+            ctx.fillStyle = '#f9690e';
+            ctx.fillRect(cx - 16, sy - 12, 11, 18);
+            ctx.fillStyle = '#c2410c';
+            ctx.fillRect(cx - 16, sy - 4, 11, 10);
+            ctx.fillStyle = '#452712'; // Belt
+            ctx.fillRect(cx - 15, sy + 2, 16, 2);
+
+            // 5. The Comforting Arms Wrapping Around Each Other
+            // Katara's comforting left arm around Aang's back
+            ctx.fillStyle = '#1d6fa5';
+            ctx.fillRect(cx - 10, sy - 1, 14, 5);
+            ctx.fillStyle = '#f8fafc'; // Fur cuff
+            ctx.fillRect(cx - 13, sy - 2, 4, 7);
+            ctx.fillStyle = '#bd8257'; // Katara's warm hand holding Aang close
+            ctx.fillRect(cx - 17, sy - 1, 5, 4);
+
+            // Katara's right arm wrapped over Aang's shoulder
+            ctx.fillStyle = '#1d6fa5';
+            ctx.fillRect(cx - 5, sy - 10, 12, 5);
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(cx - 8, sy - 11, 4, 7);
+            ctx.fillStyle = '#bd8257'; // Hand gently resting on Aang's upper back
+            ctx.fillRect(cx - 12, sy - 9, 5, 4);
+
+            // Aang's arms wrapped comfortably around Katara's waist
+            ctx.fillStyle = '#f9690e';
+            ctx.fillRect(cx - 5, sy - 4, 14, 4);
+            ctx.fillStyle = '#f5c798'; // Aang's hand resting on Katara
+            ctx.fillRect(cx + 8, sy - 3, 5, 4);
+            ctx.fillStyle = '#00d8f6'; // Cyan arrow tattoo on back of hand
+            ctx.fillRect(cx + 10, sy - 2, 2, 2);
+
+            // 6. Heads Nestled Together in Pure Comfort & Warmth
+            // Katara's Head (Right, tilted tenderly toward Aang)
+            ctx.fillStyle = '#bd8257';
+            ctx.fillRect(cx + 2, sy - 28, 14, 14);
+            ctx.fillStyle = '#d89c70';
+            ctx.fillRect(cx + 4, sy - 26, 10, 10);
+
+            // Katara's Ponytail
+            ctx.fillStyle = '#1f130b';
+            ctx.fillRect(cx + 3, sy - 32, 15, 6);
+            ctx.fillRect(cx + 14, sy - 28, 6, 18);
+            ctx.fillStyle = '#382315';
+            ctx.fillRect(cx + 4, sy - 31, 12, 3);
+
+            // Iconic Katara Hair Loopies
+            ctx.fillStyle = '#1f130b';
+            ctx.fillRect(cx + 1, sy - 22, 3, 11);
+            ctx.fillRect(cx + 2, sy - 11, 3, 3);
+            ctx.fillRect(cx + 13, sy - 22, 3, 11);
+            ctx.fillRect(cx + 12, sy - 11, 3, 3);
+            ctx.fillStyle = '#38bdf8'; // Cyan loop beads
+            ctx.fillRect(cx + 2, sy - 10, 3, 2);
+            ctx.fillRect(cx + 12, sy - 10, 3, 2);
+
+            // Katara's Betrothal Necklace
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(cx + 5, sy - 14, 8, 2);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(cx + 8, sy - 13, 3, 3);
+
+            // Katara's Closed Peaceful Anime Eyes (^ _ ^)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(cx + 5, sy - 21, 3, 1);
+            ctx.fillRect(cx + 6, sy - 22, 2, 1);
+            ctx.fillRect(cx + 10, sy - 21, 3, 1);
+            ctx.fillRect(cx + 11, sy - 22, 2, 1);
+
+            // Katara's Rosy Blushing Cheeks
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(cx + 4, sy - 18, 4, 2);
+            ctx.fillRect(cx + 11, sy - 18, 4, 2);
+
+            // Katara's Sweet Loving Smile
+            ctx.fillStyle = '#7c2d12';
+            ctx.fillRect(cx + 7, sy - 15, 4, 1);
+
+            // Aang's Head (Left, nestled snugly into Katara's neck/shoulder)
+            ctx.fillStyle = '#f5c798';
+            ctx.fillRect(cx - 12, sy - 27, 14, 14);
+            ctx.fillStyle = '#ffdfbe';
+            ctx.fillRect(cx - 10, sy - 25, 10, 10);
+
+            // Aang's Iconic Blue Arrow Tattoo
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(cx - 7, sy - 31, 4, 8);
+            ctx.fillRect(cx - 8, sy - 25, 6, 3);
+            ctx.fillStyle = '#00d8f6';
+            ctx.fillRect(cx - 6, sy - 31, 2, 7);
+            ctx.fillRect(cx - 7, sy - 24, 4, 2);
+
+            // Aang's Closed Blissful Comfort Eyes
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(cx - 9, sy - 20, 3, 1);
+            ctx.fillRect(cx - 8, sy - 21, 2, 1);
+            ctx.fillRect(cx - 4, sy - 20, 3, 1);
+            ctx.fillRect(cx - 3, sy - 21, 2, 1);
+
+            // Aang's Glowing Rosy Blushing Cheeks
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(cx - 10, sy - 17, 4, 2);
+            ctx.fillRect(cx - 3, sy - 17, 4, 2);
+
+            // Aang's Peaceful Comforted Smile
+            ctx.fillStyle = '#9a3412';
+            ctx.fillRect(cx - 6, sy - 14, 4, 2);
+
+            // 7. Aang's Glider Staff Resting beside them
+            ctx.fillStyle = '#824513';
+            ctx.fillRect(cx - 24, sy - 10, 3, 26);
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(cx - 25, sy - 13, 5, 4);
+        }
+
+        // ====================================================================
         // SERIES-ACCURATE KATARA SPRITE (16-BIT DETAILED ANIME PIXEL ART)
         // ====================================================================
         drawKatara(ctx) {
             const k = this.katara;
+            if (k.state === 'hug') {
+                return; // Rendered by drawCozyComfortHug
+            }
+
             const x = Math.floor(k.x);
             const y = Math.floor(k.y);
 
@@ -1784,7 +2284,10 @@
             const beltBrown = '#452712';
             const bootsBrown = '#52361b';
 
-            if (a.state === 'night_sit') {
+            if (a.state === 'hug') {
+                this.drawCozyComfortHug(ctx, 274, 205);
+                return;
+            } else if (a.state === 'night_sit' || a.state === 'moving_to_hug') {
                 // SITTING BESIDE KATARA BY BONFIRE
                 const sy = y + 4;
 
@@ -2285,6 +2788,826 @@
             const rg = Math.round(ag + amount * (bg - ag));
             const rb = Math.round(ab + amount * (bb - ab));
             return `rgb(${rr},${rg},${rb})`;
+        }
+
+        // ====================================================================
+        // NORTH POLE WITH AURORA BOREALIS & CAMPER VAN PIXEL ART ENGINE
+        // ====================================================================
+        initNorthPoleWorld() {
+            if (this.northPoleInitialized) return;
+            this.northPoleInitialized = true;
+
+            // 180 Polar Stars with individual twinkling properties
+            this.northPoleStars = [];
+            for (let i = 0; i < 180; i++) {
+                this.northPoleStars.push({
+                    x: Math.random() * VW,
+                    y: Math.random() * 165,
+                    size: Math.random() > 0.88 ? 2 : 1,
+                    baseAlpha: 0.35 + Math.random() * 0.65,
+                    twinkleSpeed: 1.5 + Math.random() * 3.5,
+                    phase: Math.random() * Math.PI * 2,
+                    color: Math.random() > 0.75 ? '#67e8f9' : (Math.random() > 0.5 ? '#bae6fd' : (Math.random() > 0.25 ? '#fef08a' : '#ffffff'))
+                });
+            }
+
+            // 70 Drifting Snowflakes
+            this.northPoleSnowflakes = [];
+            for (let i = 0; i < 70; i++) {
+                this.northPoleSnowflakes.push({
+                    x: Math.random() * VW,
+                    y: Math.random() * VH,
+                    size: Math.random() > 0.75 ? 2 : 1,
+                    speedY: 0.35 + Math.random() * 0.7,
+                    swayAmp: 0.6 + Math.random() * 1.4,
+                    swayFreq: 0.02 + Math.random() * 0.03,
+                    swayPhase: Math.random() * Math.PI * 2,
+                    alpha: 0.4 + Math.random() * 0.6
+                });
+            }
+
+            // Shooting stars queue
+            this.northPoleShootingStars = [];
+
+            // Diamond snow glints
+            this.snowGlints = [];
+            for (let i = 0; i < 28; i++) {
+                this.snowGlints.push({
+                    x: 10 + Math.random() * (VW - 20),
+                    y: 195 + Math.random() * 70,
+                    seed: Math.random() * 10
+                });
+            }
+        }
+
+        renderNorthPoleScene(ctx) {
+            const t = this.time;
+            const vanX = 160;
+            const vanY = 150;
+
+            if (!this.northPoleInitialized) {
+                this.initNorthPoleWorld();
+            }
+
+            // 1. Polar Night Sky & Twinkling Starfield
+            this.drawNorthPoleSkyAndStars(ctx, t);
+
+            // 2. Multi-layered Dynamic Aurora Borealis
+            this.drawNorthPoleAurora(ctx, t);
+
+            // 3. Distant Arctic Glaciers & Snowy Peaks
+            this.drawNorthPoleGlaciers(ctx);
+
+            // 4. Snowy Tundra, Dunes & Tire Tracks
+            this.drawNorthPoleSnowTundra(ctx, t);
+
+            // 5. The Retro Camper Van
+            this.drawCamperVan(ctx, vanX, vanY, t);
+
+            // 6. She and Her on the Roof of the Van looking at the Aurora
+            this.drawFiguresOnRoof(ctx, vanX, vanY, t);
+
+            // 7. Drifting Snowflakes
+            this.drawNorthPoleSnowflakes(ctx, t);
+
+            // 8. Film-Quality Pixel Vignette
+            this.drawNorthPoleVignette(ctx);
+        }
+
+        drawNorthPoleSkyAndStars(ctx, t) {
+            // High arctic midnight gradient
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 175);
+            skyGrad.addColorStop(0.0, '#02030a');
+            skyGrad.addColorStop(0.35, '#040b1e');
+            skyGrad.addColorStop(0.70, '#081734');
+            skyGrad.addColorStop(1.0, '#0c2847');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, VW, 175);
+
+            // Twinkling stars
+            for (let i = 0; i < this.northPoleStars.length; i++) {
+                const s = this.northPoleStars[i];
+                const shimmer = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.phase);
+                const a = Math.max(0.1, s.baseAlpha * shimmer);
+
+                ctx.fillStyle = s.color;
+                ctx.globalAlpha = a;
+
+                if (s.size === 2 && shimmer > 0.7) {
+                    ctx.fillRect(s.x, s.y, 2, 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(s.x - 1, s.y, 4, 1);
+                    ctx.fillRect(s.x, s.y - 1, 1, 4);
+                } else {
+                    ctx.fillRect(s.x, s.y, s.size, s.size);
+                }
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Occasional Shooting Star
+            if (this.northPoleShootingStars.length > 0) {
+                for (let i = this.northPoleShootingStars.length - 1; i >= 0; i--) {
+                    const ss = this.northPoleShootingStars[i];
+                    ctx.save();
+                    ctx.strokeStyle = '#bae6fd';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(ss.x, ss.y);
+                    ctx.lineTo(ss.x - ss.vx * (ss.life / 10), ss.y - ss.vy * (ss.life / 10));
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(ss.x - 1, ss.y - 1, 3, 3);
+                    ctx.restore();
+
+                    ss.x += ss.vx;
+                    ss.y += ss.vy;
+                    ss.life--;
+                    if (ss.life <= 0) this.northPoleShootingStars.splice(i, 1);
+                }
+            } else if (Math.random() < 0.008) {
+                this.northPoleShootingStars.push({
+                    x: 60 + Math.random() * 280,
+                    y: 12 + Math.random() * 40,
+                    vx: 5.2 + Math.random() * 2,
+                    vy: 2.2 + Math.random() * 1.5,
+                    life: 24
+                });
+            }
+        }
+
+        drawNorthPoleAurora(ctx, t) {
+            ctx.save();
+
+            // 1. Violet & Magenta Atmospheric Crown (Highest layer)
+            for (let x = 0; x < VW; x += 3) {
+                const waveY = 46 + Math.sin(x * 0.013 + t * 0.45) * 16 + Math.cos(x * 0.026 - t * 0.35) * 8;
+                const rayH = 34 + Math.sin(x * 0.08 + t * 0.6) * 14;
+                const alpha = 0.22 + 0.18 * Math.sin(x * 0.05 + t * 0.4);
+
+                const gradV = ctx.createLinearGradient(0, waveY, 0, waveY - rayH);
+                gradV.addColorStop(0, `rgba(168, 85, 247, ${alpha * 0.9})`);
+                gradV.addColorStop(0.5, `rgba(192, 132, 252, ${alpha * 0.7})`);
+                gradV.addColorStop(1, `rgba(244, 114, 182, 0)`);
+                ctx.fillStyle = gradV;
+                ctx.fillRect(x, waveY - rayH, 3, rayH);
+            }
+
+            // 2. Main Brilliant Emerald & Mint Dancing Curtain
+            for (let x = 0; x < VW; x += 2) {
+                const waveY = 78 + Math.sin(x * 0.017 + t * 0.72) * 22 + Math.cos(x * 0.033 - t * 0.48) * 15 + Math.sin(x * 0.006 + t * 0.2) * 16;
+                const flute = 0.42 + 0.58 * Math.sin(x * 0.11 + Math.sin(t * 0.65 + x * 0.018) * 2.2);
+                const rayH = 50 + flute * 32 + Math.sin(x * 0.03 - t * 0.5) * 12;
+
+                const gradE = ctx.createLinearGradient(0, waveY, 0, waveY - rayH);
+                gradE.addColorStop(0, `rgba(5, 150, 105, ${flute * 0.95})`);
+                gradE.addColorStop(0.25, `rgba(16, 185, 129, ${flute * 0.92})`);
+                gradE.addColorStop(0.55, `rgba(52, 211, 153, ${flute * 0.88})`);
+                gradE.addColorStop(0.82, `rgba(110, 231, 183, ${flute * 0.70})`);
+                gradE.addColorStop(1, `rgba(167, 243, 208, 0)`);
+
+                ctx.fillStyle = gradE;
+                ctx.fillRect(x, waveY - rayH, 2, rayH);
+
+                ctx.fillStyle = `rgba(16, 185, 129, ${flute * 0.5})`;
+                ctx.fillRect(x, waveY, 2, 4);
+            }
+
+            // 3. Lower Electric Arctic Cyan & Turquoise Ribbon
+            for (let x = 0; x < VW; x += 3) {
+                const waveY = 104 + Math.sin(x * 0.024 + t * 0.92) * 16 + Math.sin(x * 0.011 - t * 0.32) * 12;
+                const flute = 0.35 + 0.65 * Math.sin(x * 0.14 - t * 0.8);
+                const rayH = 26 + flute * 18;
+
+                const gradC = ctx.createLinearGradient(0, waveY, 0, waveY - rayH);
+                gradC.addColorStop(0, `rgba(2, 132, 199, ${flute * 0.85})`);
+                gradC.addColorStop(0.4, `rgba(6, 182, 212, ${flute * 0.80})`);
+                gradC.addColorStop(0.75, `rgba(34, 211, 238, ${flute * 0.65})`);
+                gradC.addColorStop(1, `rgba(186, 230, 253, 0)`);
+
+                ctx.fillStyle = gradC;
+                ctx.fillRect(x, waveY - rayH, 3, rayH);
+            }
+
+            // Soft atmospheric ambient green wash
+            const ambGrad = ctx.createLinearGradient(0, 40, 0, 180);
+            ambGrad.addColorStop(0, 'rgba(52, 211, 153, 0.06)');
+            ambGrad.addColorStop(0.5, 'rgba(34, 211, 238, 0.09)');
+            ambGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
+            ctx.fillStyle = ambGrad;
+            ctx.fillRect(0, 40, VW, 140);
+
+            ctx.restore();
+        }
+
+        drawNorthPoleGlaciers(ctx) {
+            // Far Mountain silhouette (deep slate)
+            ctx.fillStyle = '#061325';
+            ctx.beginPath();
+            ctx.moveTo(0, 180);
+            const peaks = [
+                {x: 0, y: 172}, {x: 45, y: 154}, {x: 85, y: 168}, {x: 130, y: 148},
+                {x: 180, y: 162}, {x: 235, y: 144}, {x: 290, y: 164}, {x: 345, y: 146},
+                {x: 400, y: 160}, {x: 445, y: 152}, {x: 480, y: 170}, {x: 480, y: 185}, {x: 0, y: 185}
+            ];
+            for (let i = 0; i < peaks.length; i++) {
+                ctx.lineTo(peaks[i].x, peaks[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Glacial ice & snow crests lit by aurora
+            ctx.fillStyle = '#0e3a58';
+            ctx.beginPath();
+            ctx.moveTo(35, 160);
+            ctx.lineTo(45, 154);
+            ctx.lineTo(55, 165);
+            ctx.lineTo(45, 168);
+            ctx.fill();
+
+            ctx.fillStyle = '#155e75';
+            ctx.beginPath();
+            ctx.moveTo(120, 155);
+            ctx.lineTo(130, 148);
+            ctx.lineTo(142, 158);
+            ctx.lineTo(130, 164);
+            ctx.fill();
+
+            ctx.fillStyle = '#164e63';
+            ctx.beginPath();
+            ctx.moveTo(225, 152);
+            ctx.lineTo(235, 144);
+            ctx.lineTo(248, 156);
+            ctx.lineTo(235, 162);
+            ctx.fill();
+
+            ctx.fillStyle = '#155e75';
+            ctx.beginPath();
+            ctx.moveTo(335, 154);
+            ctx.lineTo(345, 146);
+            ctx.lineTo(358, 158);
+            ctx.lineTo(345, 164);
+            ctx.fill();
+
+            // Aurora green/cyan rim highlight on mountain crests
+            ctx.fillStyle = '#34d399';
+            ctx.fillRect(44, 154, 3, 2);
+            ctx.fillRect(129, 148, 3, 2);
+            ctx.fillRect(234, 144, 3, 2);
+            ctx.fillRect(344, 146, 3, 2);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(43, 155, 5, 1);
+            ctx.fillRect(128, 149, 5, 1);
+            ctx.fillRect(233, 145, 5, 1);
+            ctx.fillRect(343, 147, 5, 1);
+
+            // Floating icebergs in polar fjord (y: 172 - 188)
+            // Left Iceberg
+            ctx.fillStyle = '#0c233c';
+            ctx.fillRect(28, 172, 54, 14);
+            ctx.fillStyle = '#164e63';
+            ctx.beginPath();
+            ctx.moveTo(28, 178);
+            ctx.lineTo(46, 168);
+            ctx.lineTo(72, 174);
+            ctx.lineTo(82, 186);
+            ctx.lineTo(28, 186);
+            ctx.fill();
+            // Snow top on iceberg
+            ctx.fillStyle = '#bae6fd';
+            ctx.fillRect(44, 168, 6, 2);
+            ctx.fillRect(40, 170, 14, 2);
+            ctx.fillRect(66, 173, 8, 2);
+
+            // Right Iceberg
+            ctx.fillStyle = '#0c233c';
+            ctx.fillRect(395, 170, 65, 16);
+            ctx.fillStyle = '#164e63';
+            ctx.beginPath();
+            ctx.moveTo(395, 186);
+            ctx.lineTo(412, 168);
+            ctx.lineTo(440, 166);
+            ctx.lineTo(460, 186);
+            ctx.fill();
+            ctx.fillStyle = '#bae6fd';
+            ctx.fillRect(410, 168, 8, 2);
+            ctx.fillRect(436, 166, 7, 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(412, 167, 4, 1);
+        }
+
+        drawNorthPoleSnowTundra(ctx, t) {
+            // Back Snow Dune (y: 182 to 208)
+            ctx.fillStyle = '#0a1c38';
+            ctx.beginPath();
+            ctx.moveTo(0, 192);
+            ctx.bezierCurveTo(120, 182, 280, 204, VW, 188);
+            ctx.lineTo(VW, 270);
+            ctx.lineTo(0, 270);
+            ctx.closePath();
+            ctx.fill();
+
+            // Dune rim highlight (lit by aurora)
+            ctx.strokeStyle = '#1e3a5f';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 192);
+            ctx.bezierCurveTo(120, 182, 280, 204, VW, 188);
+            ctx.stroke();
+
+            // Mid Snow Dune (y: 200 to 232)
+            ctx.fillStyle = '#0e284a';
+            ctx.beginPath();
+            ctx.moveTo(0, 222);
+            ctx.bezierCurveTo(140, 198, 320, 218, VW, 210);
+            ctx.lineTo(VW, 270);
+            ctx.lineTo(0, 270);
+            ctx.closePath();
+            ctx.fill();
+
+            // Mid dune crest highlight
+            ctx.strokeStyle = '#22557e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 222);
+            ctx.bezierCurveTo(140, 198, 320, 218, VW, 210);
+            ctx.stroke();
+
+            // Foreground Main Snowpack Shelf (y: 216 to 270)
+            ctx.fillStyle = '#163b66';
+            ctx.beginPath();
+            ctx.moveTo(0, 234);
+            ctx.bezierCurveTo(160, 218, 310, 238, VW, 228);
+            ctx.lineTo(VW, 270);
+            ctx.lineTo(0, 270);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bright icy crust edge (cyan moonlight & emerald aurora sheen)
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, 234);
+            ctx.bezierCurveTo(160, 222, 310, 238, VW, 228);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(186, 230, 253, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 233);
+            ctx.bezierCurveTo(160, 221, 310, 237, VW, 227);
+            ctx.stroke();
+
+            // Tire tracks in the snow leading up to the van
+            ctx.fillStyle = '#0a1626';
+            ctx.fillRect(0, 238, 175, 4);
+            ctx.fillRect(0, 246, 175, 5);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 237, 175, 1);
+            ctx.fillRect(0, 245, 175, 1);
+
+            // Diamond snow glints (twinkling in polar snowpack)
+            for (let i = 0; i < this.snowGlints.length; i++) {
+                const g = this.snowGlints[i];
+                const shimmer = Math.sin(t * 3.5 + g.seed);
+                if (shimmer > 0.72) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(g.x, g.y, 1, 1);
+                    if (shimmer > 0.9) {
+                        ctx.fillStyle = '#7dd3fc';
+                        ctx.fillRect(g.x - 1, g.y, 3, 1);
+                        ctx.fillRect(g.x, g.y - 1, 1, 3);
+                    }
+                }
+            }
+        }
+
+        drawNorthPoleSnowflakes(ctx, t) {
+            for (let i = 0; i < this.northPoleSnowflakes.length; i++) {
+                const f = this.northPoleSnowflakes[i];
+                f.y += f.speedY;
+                f.x += Math.sin(t * 1.8 + f.swayPhase) * f.swayAmp * 0.4;
+
+                if (f.y > VH) {
+                    f.y = -4;
+                    f.x = Math.random() * VW;
+                }
+                if (f.x > VW) f.x = 0;
+                if (f.x < 0) f.x = VW;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = f.alpha;
+                ctx.fillRect(Math.round(f.x), Math.round(f.y), f.size, f.size);
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        drawCamperVan(ctx, vanX, vanY, t) {
+            // Drop shadow under van on snow
+            ctx.fillStyle = '#060f1e';
+            ctx.beginPath();
+            ctx.ellipse(vanX + 82, vanY + 74, 80, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Headlight Volumetric Beam extending forward across snow
+            const beamGrad = ctx.createLinearGradient(vanX + 158, vanY + 48, vanX + 270, vanY + 70);
+            beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.32)');
+            beamGrad.addColorStop(0.3, 'rgba(254, 240, 138, 0.16)');
+            beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+            ctx.fillStyle = beamGrad;
+            ctx.beginPath();
+            ctx.moveTo(vanX + 158, vanY + 46);
+            ctx.lineTo(vanX + 275, vanY + 42);
+            ctx.lineTo(vanX + 290, vanY + 78);
+            ctx.lineTo(vanX + 158, vanY + 54);
+            ctx.closePath();
+            ctx.fill();
+
+            // Snow Tires & Wheels
+            const wheels = [vanX + 34, vanX + 130];
+            wheels.forEach(wx => {
+                // Wheel arch cutout
+                ctx.fillStyle = '#060f1e';
+                ctx.beginPath();
+                ctx.arc(wx, vanY + 68, 14, Math.PI, 0, false);
+                ctx.fill();
+
+                // Tire rubber
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(wx, vanY + 68, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Retro chrome wheel rim & white wall
+                ctx.fillStyle = '#f8fafc';
+                ctx.beginPath();
+                ctx.arc(wx, vanY + 68, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Hubcap center
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(wx, vanY + 68, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#0f766e';
+                ctx.fillRect(wx - 2, vanY + 66, 4, 4);
+
+                // Natural soft snowdrift nestled around tire base
+                ctx.fillStyle = '#0e2a4f';
+                ctx.beginPath();
+                ctx.ellipse(wx, vanY + 75, 14, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#163b66';
+                ctx.beginPath();
+                ctx.ellipse(wx, vanY + 73, 12, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#bae6fd';
+                ctx.beginPath();
+                ctx.ellipse(wx, vanY + 71, 9, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Lower Body (Deep Polar Teal)
+            ctx.fillStyle = '#0f766e';
+            ctx.fillRect(vanX + 6, vanY + 36, 150, 32);
+
+            // Front nose curve
+            ctx.beginPath();
+            ctx.moveTo(vanX + 156, vanY + 36);
+            ctx.quadraticCurveTo(vanX + 162, vanY + 50, vanX + 158, vanY + 68);
+            ctx.lineTo(vanX + 156, vanY + 68);
+            ctx.fill();
+
+            // Rear curve
+            ctx.beginPath();
+            ctx.moveTo(vanX + 6, vanY + 36);
+            ctx.quadraticCurveTo(vanX + 2, vanY + 50, vanX + 4, vanY + 68);
+            ctx.lineTo(vanX + 6, vanY + 68);
+            ctx.fill();
+
+            // Shading & highlight
+            ctx.fillStyle = '#115e59';
+            ctx.fillRect(vanX + 4, vanY + 64, 154, 4);
+            ctx.fillStyle = '#14b8a6';
+            ctx.fillRect(vanX + 6, vanY + 38, 150, 2);
+
+            // Chrome waistline molding
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(vanX + 4, vanY + 35, 156, 3);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(vanX + 5, vanY + 35, 154, 1);
+
+            // Front Chrome Bumper (Right) with snow on top
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(vanX + 156, vanY + 60, 6, 7);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(vanX + 155, vanY + 58, 8, 2);
+
+            // Rear Chrome Bumper (Left) with snow
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(vanX - 1, vanY + 60, 6, 7);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(vanX - 2, vanY + 58, 8, 2);
+
+            // Headlights & Tail Lights
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath();
+            ctx.arc(vanX + 159, vanY + 49, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(vanX + 159, vanY + 49, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(vanX + 158, vanY + 56, 3, 3);
+
+            // Rear Taillight
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(vanX + 2, vanY + 48, 3, 7);
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(vanX + 2, vanY + 55, 3, 3);
+
+            // Upper Body & Cabin (Warm Ivory / Cream)
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(vanX + 8, vanY + 8, 146, 28);
+            ctx.beginPath();
+            ctx.moveTo(vanX + 154, vanY + 36);
+            ctx.lineTo(vanX + 148, vanY + 8);
+            ctx.lineTo(vanX + 142, vanY + 8);
+            ctx.lineTo(vanX + 142, vanY + 36);
+            ctx.fill();
+
+            // Windows & Cozy Warm Hearth Light Inside
+            // Front Windshield
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(vanX + 130, vanY + 11, 20, 23);
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(vanX + 132, vanY + 13, 16, 19);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(vanX + 134, vanY + 15, 12, 15);
+
+            // Side Windows with glowing honey amber
+            // Window 1 (Passenger/Living)
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(vanX + 76, vanY + 11, 48, 23);
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(vanX + 78, vanY + 13, 44, 19);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(vanX + 80, vanY + 15, 40, 15);
+
+            // Window 2 (Rear Sleeper)
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(vanX + 22, vanY + 11, 48, 23);
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(vanX + 24, vanY + 13, 44, 19);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(vanX + 26, vanY + 15, 40, 15);
+
+            // Cozy Curtains tied back inside the windows
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(vanX + 78, vanY + 13, 6, 19);
+            ctx.fillRect(vanX + 116, vanY + 13, 6, 19);
+            ctx.fillRect(vanX + 24, vanY + 13, 6, 19);
+            ctx.fillRect(vanX + 62, vanY + 13, 6, 19);
+
+            // Window frame divider bars
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(vanX + 70, vanY + 10, 6, 25);
+            ctx.fillRect(vanX + 124, vanY + 10, 6, 25);
+
+            // Door handle
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(vanX + 126, vanY + 42, 6, 2);
+
+            // Expedition Side Ladder
+            const ladderX = vanX + 14;
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(ladderX, vanY + 10, 2, 54);
+            ctx.fillRect(ladderX + 8, vanY + 10, 2, 54);
+            for (let ly = vanY + 14; ly < vanY + 62; ly += 9) {
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(ladderX, ly, 10, 2);
+            }
+
+            // Heavy-Duty Safari Roof Rack & Platform
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(vanX + 8, vanY + 5, 146, 3);
+            ctx.fillRect(vanX + 8, vanY + 2, 146, 2);
+            for (let rx = vanX + 12; rx < vanX + 150; rx += 22) {
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(rx, vanY + 2, 2, 6);
+            }
+            // Wooden deck slats on roof
+            ctx.fillStyle = '#92400e';
+            ctx.fillRect(vanX + 12, vanY + 5, 138, 3);
+            ctx.fillStyle = '#78350f';
+            for (let dx = vanX + 14; dx < vanX + 148; dx += 6) {
+                ctx.fillRect(dx, vanY + 5, 1, 3);
+            }
+
+            // Fairy String Lights draped along roof rack
+            const fairyColors = ['#f472b6', '#facc15', '#4ade80', '#38bdf8', '#f43f5e', '#a855f7'];
+            for (let i = 0; i < 11; i++) {
+                const fx = vanX + 22 + i * 11;
+                const fy = vanY + 7 + Math.sin(i * 0.9) * 2;
+                const col = fairyColors[i % fairyColors.length];
+
+                ctx.fillStyle = col;
+                ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3 + i);
+                ctx.fillRect(fx - 1, fy - 1, 4, 4);
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.9;
+                ctx.fillRect(fx, fy, 2, 2);
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        drawFiguresOnRoof(ctx, vanX, vanY, t) {
+            // 1. Quilted Camp Blanket / Thermal Sleeping Pad under them
+            ctx.fillStyle = '#831843';
+            ctx.fillRect(vanX + 50, vanY + 2, 64, 4);
+            ctx.fillStyle = '#fbcfe8';
+            ctx.fillRect(vanX + 48, vanY + 4, 68, 2);
+
+            const breathCycle = (t * 0.85) % 4.0;
+            const isBreathing = breathCycle < 1.2;
+
+            // 2. FIGURE 1 (Left - "She"):
+            const f1x = vanX + 60;
+            const f1y = vanY - 22;
+
+            // Legs dangling over roof edge
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(f1x + 2, vanY + 2, 8, 8);
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(f1x + 1, vanY + 9, 10, 4);
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(f1x + 1, vanY + 8, 10, 2);
+
+            // Parka Body (Warm berry coat)
+            ctx.fillStyle = '#9f1239';
+            ctx.fillRect(f1x, f1y + 8, 14, 15);
+            ctx.fillStyle = '#be123c';
+            ctx.fillRect(f1x + 2, f1y + 10, 10, 12);
+
+            // White Sherpa Fur Collar around neck
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(f1x + 1, f1y + 6, 12, 4);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(f1x + 2, f1y + 9, 10, 2);
+
+            // Head & Hair
+            ctx.fillStyle = '#1c1917';
+            ctx.fillRect(f1x + 2, f1y + 1, 10, 10);
+            ctx.fillRect(f1x + 1, f1y + 4, 12, 8);
+            ctx.fillRect(f1x + 2, f1y + 11, 4, 5);
+
+            // Cute Rose Winter Beanie
+            ctx.fillStyle = '#fb7185';
+            ctx.fillRect(f1x + 2, f1y - 3, 10, 6);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(f1x + 3, f1y - 5, 8, 3);
+            // Fluffy White Pom-Pom on top!
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(f1x + 6, f1y - 8, 4, 4);
+            ctx.fillStyle = '#f1f5f9';
+            ctx.fillRect(f1x + 5, f1y - 7, 6, 2);
+
+            // Mittens holding camp mug
+            ctx.fillStyle = '#fb7185';
+            ctx.fillRect(f1x + 7, f1y + 14, 4, 4);
+
+            // 3. FIGURE 2 (Right - "Her"):
+            const f2x = vanX + 76;
+            const f2y = vanY - 23;
+
+            // Legs
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(f2x + 4, vanY + 2, 8, 8);
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(f2x + 4, vanY + 9, 9, 4);
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(f2x + 4, vanY + 8, 9, 2);
+
+            // Coat Body (Deep Navy/Spruce)
+            ctx.fillStyle = '#1e3a5f';
+            ctx.fillRect(f2x + 2, f2y + 8, 15, 15);
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(f2x + 4, f2y + 10, 11, 12);
+
+            // Warm Knitted Scarf (Pastel Gold/Yellow)
+            ctx.fillStyle = '#fde047';
+            ctx.fillRect(f2x + 3, f2y + 7, 12, 4);
+            ctx.fillStyle = '#eab308';
+            ctx.fillRect(f2x + 5, f2y + 10, 4, 7);
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(f2x + 5, f2y + 16, 4, 2);
+
+            // Her Left Arm affectionately wrapped around Figure 1's shoulders
+            ctx.fillStyle = '#1e3a5f';
+            ctx.fillRect(f1x + 10, f1y + 8, 8, 5);
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(f1x + 8, f1y + 9, 4, 4);
+
+            // Head & Hair
+            ctx.fillStyle = '#451a03';
+            ctx.fillRect(f2x + 4, f2y + 1, 10, 8);
+            ctx.fillRect(f2x + 3, f2y + 4, 12, 7);
+
+            // Cute Winter Earmuffs / Headband
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(f2x + 3, f2y - 2, 12, 3);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(f2x + 2, f2y + 1, 4, 5);
+            ctx.fillRect(f2x + 12, f2y + 1, 4, 5);
+
+            // 4. Shared Cozy Plaid Fleece Blanket draped over both their backs
+            ctx.fillStyle = '#7c2d12';
+            ctx.fillRect(f1x + 4, f1y + 12, 22, 9);
+            ctx.fillStyle = '#9a3412';
+            ctx.fillRect(f1x + 6, f1y + 14, 18, 6);
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(f1x + 4, f1y + 20, 22, 2);
+
+            // 5. Hot Thermos & Steaming Enamel Camp Mug
+            const mugX = vanX + 100;
+            const mugY = vanY - 6;
+
+            // Stainless Steel Thermos with Red Cap
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(mugX + 10, mugY - 4, 6, 12);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(mugX + 11, mugY - 3, 2, 10);
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(mugX + 9, mugY - 7, 8, 4);
+
+            // Camp Enamel Mug
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(mugX, mugY + 2, 7, 6);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(mugX, mugY + 1, 7, 1);
+            ctx.fillRect(mugX + 6, mugY + 3, 2, 3);
+
+            // Delicate Steam wisps rising into polar air
+            for (let i = 0; i < 3; i++) {
+                const sy = ((t * 14 + i * 6) % 18);
+                const sx = mugX + 3 + Math.sin(t * 3 + i) * 2;
+                ctx.fillStyle = 'rgba(248, 250, 252, 0.45)';
+                ctx.fillRect(sx, mugY - sy, 2, 2);
+            }
+
+            // 6. Condensing Breath Mist from the two figures
+            if (isBreathing) {
+                const bAlpha = (1.2 - breathCycle) * 0.45;
+                ctx.fillStyle = `rgba(240, 249, 255, ${bAlpha})`;
+                ctx.fillRect(f1x + 11, f1y + 1 - breathCycle * 3, 3, 2);
+                ctx.fillRect(f1x + 13, f1y - breathCycle * 4, 4, 3);
+                ctx.fillRect(f2x + 10, f2y + 1 - breathCycle * 3, 3, 2);
+                ctx.fillRect(f2x + 12, f2y - breathCycle * 4, 4, 3);
+            }
+        }
+
+        drawAuroraMessage(ctx, t) {
+            ctx.save();
+            const message = 'GET WELL SOON MY SWEETHEART';
+            const cx = VW / 2;
+            const cy = 34;
+
+            ctx.font = '11px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const glowAmp = 0.8 + 0.2 * Math.sin(t * 2.5);
+
+            // Drop shadow
+            ctx.fillStyle = '#020617';
+            ctx.fillText(message, cx + 2, cy + 2);
+
+            // Emerald aura
+            ctx.fillStyle = `rgba(52, 211, 153, ${0.45 * glowAmp})`;
+            ctx.fillText(message, cx - 1, cy);
+            ctx.fillText(message, cx + 1, cy);
+            ctx.fillText(message, cx, cy - 1);
+            ctx.fillText(message, cx, cy + 1);
+
+            // Cyan aura
+            ctx.fillStyle = `rgba(34, 211, 238, ${0.7 * glowAmp})`;
+            ctx.fillText(message, cx, cy);
+
+            // Pure diamond white text
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(message, cx, cy);
+
+            ctx.restore();
+        }
+
+        drawNorthPoleVignette(ctx) {
+            const vig = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.42, VW / 2, VH / 2, VW * 0.72);
+            vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            vig.addColorStop(0.65, 'rgba(2, 6, 23, 0.15)');
+            vig.addColorStop(1, 'rgba(2, 6, 23, 0.65)');
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, VW, VH);
         }
 
         // ====================================================================

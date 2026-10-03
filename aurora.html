@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Well Soon Sweetheart ❤️</title>
+    <meta name="description" content="Get Well Soon Sweetheart - We Have To Explore Whole World. A handcrafted 2D pixel art North Pole Aurora night scene.">
+    
+    <!-- Google Fonts for Retro Pixel Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="kataang/style.css">
+</head>
+<body data-scene="aurora">
+    <div id="game-container">
+        <!-- 2D Pixel Art Canvas -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Audio Element for Tavern Soundtrack -->
+        <audio id="tavern-music" src="tavernsong.mp3" preload="auto"></audio>
+
+        <!-- Aurora North Pole Message -->
+        <div id="aurora-message-container" class="aurora-message-container">
+            <h1 class="aurora-message-title">GET WELL SOON SWEETHEART</h1>
+            <p class="aurora-message-sub">WE HAVE TO EXPLORE WHOLE WORLD</p>
+        </div>
+
+        <!-- Audio Control for Direct Aurora Page -->
+        <div class="aurora-audio-bar">
+            <button id="sound-btn" class="pixel-btn sm" title="Toggle Sound / Music">
+                <span id="sound-icon">🔊</span> <span id="sound-text">SOUND: ON</span>
+            </button>
+        </div>
+
+        <!-- Hidden DOM elements referenced by KataangGame engine -->
+        <div id="top-bar" class="hidden"></div>
+        <div id="battle-hud" class="hidden"></div>
+        <div id="dialogue-box" class="hidden"></div>
+        <div id="night-actions" class="hidden"></div>
+        <div id="intro-screen" class="hidden"></div>
+        <div id="fade-curtain" class="fade-curtain"></div>
+    </div>
+
+    <script src="kataang/game.js"></script>
+</body>
+</html>
