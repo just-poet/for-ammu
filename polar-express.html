@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Polar Express at the North Pole ❄️ | Get Well Soon Rapunzel</title>
+    <meta name="description" content="A majestic handcrafted 2D pixel art journey of The Polar Express steaming through the North Pole under the Aurora Borealis. Words flowing from above for Rapunzel.">
+    
+    <!-- Google Fonts for Retro Pixel Typography and Elegant Storybook Titles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =====================================================================
+           POLAR EXPRESS PIXEL ART EXPERIENCE - ZERO SOUND, PURE MAJESTY
+           ===================================================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #01030a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f8fafc;
+        }
+
+        #app-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 50% 20%, #06152d 0%, #020712 60%, #010309 100%);
+            overflow: hidden;
+        }
+
+        /* Pixel Canvas: Integer Scaled, Crisp, No Blur */
+        #game-canvas {
+            display: block;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            box-shadow: 0 0 60px rgba(6, 182, 212, 0.15), 0 0 100px rgba(16, 185, 129, 0.1);
+            cursor: pointer;
+        }
+
+        /* ---------------------------------------------------------------------
+           WORDS FLOWING FROM ABOVE - CELESTIAL FLOWING BANNER
+           --------------------------------------------------------------------- */
+        .flowing-words-container {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 960px;
+            pointer-events: none;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: floatDownFromHeavens 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes floatDownFromHeavens {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -30px) scale(0.96);
+                filter: blur(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, 0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* Ethereal Frosted Aurora Glass Ribbon (Sleek, Translucent, Glowing) */
+        .celestial-ribbon {
+            width: 100%;
+            background: linear-gradient(135deg, 
+                rgba(3, 11, 28, 0.55) 0%, 
+                rgba(2, 8, 20, 0.65) 50%, 
+                rgba(5, 17, 38, 0.55) 100%
+            );
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 12px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(52, 211, 153, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25),
+                inset 0 0 15px rgba(56, 189, 248, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Northern Lights Sheen over the Ribbon */
+        .celestial-ribbon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 300%;
+            height: 100%;
+            background: linear-gradient(
+                90deg, 
+                transparent 0%, 
+                rgba(52, 211, 153, 0.08) 25%, 
+                rgba(56, 189, 248, 0.16) 50%, 
+                rgba(244, 114, 182, 0.08) 75%, 
+                transparent 100%
+            );
+            animation: ribbonShimmer 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes ribbonShimmer {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(50%); }
+        }
+
+        /* Decorative Golden Crest */
+        .ribbon-header-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.7), 0 2px 4px #000;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .ribbon-header-tag .star-icon {
+            font-size: 11px;
+            animation: starPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes starPulse {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            100% { transform: scale(1.2); opacity: 1; filter: drop-shadow(0 0 6px #fde047); }
+        }
+
+        /* The Main Flowing Headline */
+        .primary-flowing-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-shadow: 
+                2px 2px 0px #020617,
+                -1px -1px 0px #020617,
+                0 0 16px rgba(52, 211, 153, 0.9),
+                0 0 28px rgba(56, 189, 248, 0.8),
+                0 0 40px rgba(251, 191, 36, 0.5);
+            animation: auroraGlowPulse 4s ease-in-out infinite alternate;
+            margin-bottom: 8px;
+        }
+
+        @keyframes auroraGlowPulse {
+            0% {
+                text-shadow: 
+                    2px 2px 0px #020617,
+                    0 0 14px rgba(52, 211, 153, 0.9),
+                    0 0 25px rgba(56, 189, 248, 0.7);
+            }
+            50% {
+                text-shadow: 
+                    2px 2px 0px #020617,
+                    0 0 20px rgba(251, 191, 36, 0.95),
+                    0 0 32px rgba(244, 114, 182, 0.85);
+            }
+            100% {
+                text-shadow: 
+                    2px 2px 0px #020617,
+                    0 0 22px rgba(56, 189, 248, 0.95),
+                    0 0 35px rgba(52, 211, 153, 0.85);
+            }
+        }
+
+        /* Flowing Subtext with Words Cascading */
+        .flowing-subtext-stream {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e0f2fe;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 12px rgba(56, 189, 248, 0.5);
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sub-highlight {
+            color: #fde047;
+            text-shadow: 0 0 10px rgba(253, 224, 71, 0.8), 0 2px 4px #000;
+        }
+
+        .magic-highlight {
+            color: #a7f3d0;
+            text-shadow: 0 0 10px rgba(167, 243, 208, 0.8), 0 2px 4px #000;
+        }
+
+        .kidnap-plan-tag {
+            display: inline-block;
+            background: rgba(244, 63, 94, 0.22);
+            border: 1px dashed rgba(251, 113, 133, 0.6);
+            color: #fecdd3;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+        }
+
+        /* ---------------------------------------------------------------------
+           BOTTOM RETRO CONTROLS & HUD BAR (SILENT, VISUAL-ONLY)
+           --------------------------------------------------------------------- */
+        .bottom-hud-bar {
+            position: absolute;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            z-index: 20;
+            pointer-events: auto;
+        }
+
+        .pixel-badge-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            color: #bae6fd;
+            background: rgba(4, 15, 33, 0.85);
+            border: 2px solid #0284c7;
+            padding: 8px 14px;
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .pixel-badge-btn:hover {
+            background: rgba(8, 28, 58, 0.95);
+            border-color: #38bdf8;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+        }
+
+        .pixel-badge-btn.gold {
+            border-color: #d97706;
+            color: #fef08a;
+        }
+
+        .pixel-badge-btn.gold:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+        }
+
+        /* Subtle Retro Scanlines & Film Vignette Overlay */
+        .vignette-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, transparent 62%, rgba(1, 3, 10, 0.65) 100%);
+            z-index: 15;
+        }
+
+        .scanlines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0.015) 0px,
+                rgba(255, 255, 255, 0.015) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            z-index: 16;
+            opacity: 0.6;
+        }
+
+        /* Screen Click Hint */
+        .click-hint {
+            position: absolute;
+            bottom: 58px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 7px;
+            letter-spacing: 1.5px;
+            color: rgba(186, 230, 253, 0.65);
+            text-shadow: 0 1px 3px #000;
+            pointer-events: none;
+            z-index: 20;
+            animation: pulseHint 2.4s ease-in-out infinite;
+        }
+
+        @keyframes pulseHint {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.9; }
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .flowing-words-container {
+                top: 10px;
+                width: 96%;
+            }
+            .celestial-ribbon {
+                padding: 10px 14px;
+            }
+            .primary-flowing-title {
+                font-size: 9px;
+                line-height: 1.5;
+            }
+            .flowing-subtext-stream {
+                font-size: 10px;
+                gap: 6px;
+            }
+            .bottom-hud-bar {
+                bottom: 10px;
+                gap: 8px;
+            }
+            .pixel-badge-btn {
+                font-size: 7px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-wrapper">
+        <!-- 2D Pixel Art Canvas -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Film Vignette & Subtle Retro Scanline Overlay -->
+        <div class="vignette-overlay"></div>
+        <div class="scanlines"></div>
+
+        <!-- WORDS FLOWING FROM ABOVE (The Majestic Celestial Ribbon) -->
+        <div class="flowing-words-container" id="flowing-words">
+            <div class="celestial-ribbon">
+                <div class="ribbon-header-tag">
+                    <span class="star-icon">✨</span>
+                    <span>FOR RAPUNZEL • NORTH POLE EXPRESS 90°N</span>
+                    <span class="star-icon">✨</span>
+                </div>
+                
+                <h1 class="primary-flowing-title">
+                    GET WELL SOON RAPUNZEL, YOU THE SWEETESTEST PERSON EVER !!!!
+                </h1>
+
+                <div class="flowing-subtext-stream">
+                    <span>🌍 WE NEEDA EXPLORE WHOLE WORLD !</span>
+                    <span>•</span>
+                    <span class="magic-highlight">🪄 GET WELL SOON, SENDING MAGIC</span>
+                    <span class="kidnap-plan-tag">🚨 & KIDNAPPING PLANS TO CURE IT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Silent HUD Bar: Seamless Navigation & View Controls -->
+        <div class="bottom-hud-bar">
+            <a href="aurora.html" class="pixel-badge-btn">
+                <span>🌌 AURORA SCENE</span>
+            </a>
+            <button id="camera-speed-btn" class="pixel-badge-btn gold">
+                <span>⚡ SPEED: NORMAL</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Handcrafted 2D Pixel Art Engine (Zero External Dependencies, Zero Sound, Pure Procedural Graphics) -->
+    <script src="polar-express.js"></script>
+</body>
+</html>

@@ -97,7 +97,9 @@
                 audio.addEventListener('loadedmetadata', () => {
                     executePlay();
                 }, { once: true });
-                audio.load();
+                if (typeof audio.load === 'function') {
+                    try { audio.load(); } catch (e) {}
+                }
             }
         }
 
@@ -122,7 +124,12 @@
                 }
             }
             if (this.ctx && this.ctx.state === 'suspended') {
-                this.ctx.resume();
+                try {
+                    const resumeP = this.ctx.resume();
+                    if (resumeP && typeof resumeP.catch === 'function') {
+                        resumeP.catch(() => {});
+                    }
+                } catch (e) {}
             }
             if (!this.fightAudio || !this.tavernAudio) {
                 this.initAudioElements();
@@ -310,6 +317,21 @@
         }
 
         toggle() {
+            // If sound was enabled but audio is currently paused (e.g. browser blocked autoplay),
+            // pressing sound toggle should start playback rather than muting!
+            if (this.enabled && this.currentTrack && (
+                (this.currentTrack === 'battle' && this.fightAudio && this.fightAudio.paused) ||
+                ((this.currentTrack === 'night' || this.currentTrack === 'aurora') && this.tavernAudio && this.tavernAudio.paused)
+            )) {
+                this.init();
+                if (this.currentTrack === 'battle') {
+                    this.playAudioTrack(this.fightAudio, 115);
+                } else {
+                    this.playAudioTrack(this.tavernAudio, 67);
+                }
+                return true;
+            }
+
             this.enabled = !this.enabled;
             if (!this.enabled) {
                 this.pauseAllMusic();
@@ -507,10 +529,12 @@
                 }
             ];
 
-            const isDirectAurora = window.location.search.includes('aurora') || 
-                                   window.location.hash.includes('aurora') || 
-                                   window.location.hash.includes('northpole') ||
-                                   (document.body && document.body.dataset && document.body.dataset.scene === 'aurora');
+            const isDirectAurora = window.location.pathname.toLowerCase().includes('aurora') ||
+                                   window.location.search.toLowerCase().includes('aurora') || 
+                                   window.location.hash.toLowerCase().includes('aurora') || 
+                                   window.location.hash.toLowerCase().includes('northpole') ||
+                                   (document.body && document.body.dataset && document.body.dataset.scene === 'aurora') ||
+                                   (document.body && document.body.getAttribute && document.body.getAttribute('data-scene') === 'aurora');
 
             if (isDirectAurora) {
                 this.startNorthPoleAuroraDirectly();
@@ -575,17 +599,34 @@
             const soundBtn = document.getElementById('sound-btn');
             const soundIcon = document.getElementById('sound-icon');
             const soundText = document.getElementById('sound-text');
-            soundBtn.addEventListener('click', () => {
-                const on = this.sound.toggle();
-                soundIcon.textContent = on ? '🔊' : '🔇';
-                soundText.textContent = on ? 'SOUND: ON' : 'SOUND: OFF';
-            });
+            if (soundBtn) {
+                soundBtn.addEventListener('click', () => {
+                    const on = this.sound.toggle();
+                    if (soundIcon) soundIcon.textContent = on ? '🔊' : '🔇';
+                    if (soundText) soundText.textContent = on ? 'SOUND: ON' : 'SOUND: OFF';
+                });
+            }
+
+            // Automatically resume audio on the user's first gesture anywhere on screen
+            const handleFirstGesture = () => {
+                if (this.sound && this.sound.enabled) {
+                    this.sound.init();
+                    if (this.state === 'NORTH_POLE_AURORA') {
+                        if (this.sound.tavernAudio && this.sound.tavernAudio.paused) {
+                            this.sound.playTrack('aurora');
+                        }
+                    }
+                }
+            };
+            window.addEventListener('click', handleFirstGesture, { once: true });
+            window.addEventListener('touchstart', handleFirstGesture, { once: true });
+            window.addEventListener('keydown', handleFirstGesture, { once: true });
 
             const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', () => this.startAdventure());
+            if (startBtn) startBtn.addEventListener('click', () => this.startAdventure());
 
             const restartBtn = document.getElementById('restart-btn');
-            restartBtn.addEventListener('click', () => this.restartGame());
+            if (restartBtn) restartBtn.addEventListener('click', () => this.restartGame());
 
             window.addEventListener('keydown', (e) => {
                 if (e.code === 'Space') {
@@ -597,15 +638,19 @@
                 }
             });
 
-            this.dialogueBox.addEventListener('click', () => {
-                this.advanceDialogue();
-            });
+            if (this.dialogueBox) {
+                this.dialogueBox.addEventListener('click', () => {
+                    this.advanceDialogue();
+                });
+            }
 
-            this.canvas.addEventListener('click', () => {
-                if (this.aang && (this.aang.state === 'hug' || this.katara.state === 'hug')) {
-                    this.transitionToNorthPoleAurora();
-                }
-            });
+            if (this.canvas) {
+                this.canvas.addEventListener('click', () => {
+                    if (this.aang && (this.aang.state === 'hug' || this.katara.state === 'hug')) {
+                        this.transitionToNorthPoleAurora();
+                    }
+                });
+            }
         }
 
         // ====================================================================
@@ -2876,13 +2921,13 @@
 
         drawNorthPoleSkyAndStars(ctx, t) {
             // High arctic midnight gradient
-            const skyGrad = ctx.createLinearGradient(0, 0, 0, 175);
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 195);
             skyGrad.addColorStop(0.0, '#02030a');
             skyGrad.addColorStop(0.35, '#040b1e');
             skyGrad.addColorStop(0.70, '#081734');
             skyGrad.addColorStop(1.0, '#0c2847');
             ctx.fillStyle = skyGrad;
-            ctx.fillRect(0, 0, VW, 175);
+            ctx.fillRect(0, 0, VW, VH);
 
             // Twinkling stars
             for (let i = 0; i < this.northPoleStars.length; i++) {
